@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>ピーキング計画ツール</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: sans-serif; background: #f0f0f0; padding: 20px; }
+    .container { background: #fff; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, select, button { width: 100%; padding: 10px; margin: 10px 0; font-size: 1em; }
+    button { background: #4CAF50; color: white; border: none; border-radius: 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th { background: #f7f7f7; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <label for="language"><strong>Language / 言語:</strong></label>
+    <select id="language" onchange="changeLanguage()">
+      <option value="ja">日本語</option>
+      <option value="en">English</option>
+    </select><br><br>
+
+    <h1 id="title">ピーキング計画ツール</h1>
+
+    <label id="label-date">大会・撮影の本番日を選択</label>
+    <input type="date" id="targetDate">
+
+    <button id="calcBtn" onclick="generatePlan()">スケジュールを表示</button>
+
+    <div id="resultArea"></div>
+  </div>
+
+<script>
+const texts = {
+  ja: {
+    title: "ピーキング計画ツール",
+    label_date: "大会・撮影の本番日を選択",
+    button: "スケジュールを表示",
+    headers: ["日付", "イベント", "説明"],
+    plan: [
+      [-14, "疲労抜き開始", "トレーニング量を減らし、回復重視に切り替えます"],
+      [-7, "減塩開始", "食事の塩分量を徐々に下げていきます"],
+      [-4, "水分摂取量増加", "水分を多めに摂り始めます（2〜3L以上）"],
+      [-2, "水抜き開始", "水分摂取を減らし始めます"],
+      [-1, "カーボアップ", "炭水化物摂取量を増やし、筋肉に張りを出します"],
+      [0, "本番当日", "ピークの状態で本番へ！"]
+    ]
+  },
+  en: {
+    title: "Peaking Planner",
+    label_date: "Select your event or show date",
+    button: "Show Schedule",
+    headers: ["Date", "Event", "Description"],
+    plan: [
+      [-14, "Begin Deload", "Reduce training volume and focus on recovery"],
+      [-7, "Start Low Sodium", "Gradually reduce salt intake"],
+      [-4, "Increase Water Intake", "Drink more water (2–3L or more)"],
+      [-2, "Start Water Cut", "Reduce water intake gradually"],
+      [-1, "Carbohydrate Loading", "Increase carbs for muscle fullness"],
+      [0, "Event Day", "Showtime – you’re at your peak!"]
+    ]
+  }
+};
+
+function changeLanguage() {
+  const lang = document.getElementById("language").value;
+  document.documentElement.lang = lang;
+  document.getElementById("title").textContent = texts[lang].title;
+  document.getElementById("label-date").textContent = texts[lang].label_date;
+  document.getElementById("calcBtn").textContent = texts[lang].button;
+}
+
+function generatePlan() {
+  const lang = document.getElementById("language").value;
+  const target = document.getElementById("targetDate").value;
+  if (!target) {
+    alert("日付を選択してください / Please select a date");
+    return;
+  }
+
+  const targetDate = new Date(target);
+  const plan = texts[lang].plan;
+  const headers = texts[lang].headers;
+
+  let html = "<table><tr><th>" + headers[0] + "</th><th>" + headers[1] + "</th><th>" + headers[2] + "</th></tr>";
+
+  plan.forEach(entry => {
+    const d = new Date(targetDate);
+    d.setDate(d.getDate() + entry[0]);
+    const dateStr = d.toISOString().split("T")[0];
+    html += `<tr><td>${dateStr}</td><td>${entry[1]}</td><td>${entry[2]}</td></tr>`;
+  });
+
+  html += "</table>";
+  document.getElementById("resultArea").innerHTML = html;
+}
+
+window.onload = changeLanguage;
+</script>
+</body>
+</html>
