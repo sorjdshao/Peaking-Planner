@@ -1,11 +1,12 @@
 
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>ピーキング計算機（論理対応版）</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
+<meta charset="utf-8"/>
+<title>ピーキング計算機（論理対応版）</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<style>
     body { font-family: sans-serif; background: #f0f0f0; padding: 20px; }
     .container { background: #fff; padding: 20px; max-width: 800px; margin: auto; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     label { font-weight: bold; margin-top: 10px; display: block; }
@@ -17,66 +18,75 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>ピーキング計算機（論理対応版）</h1>
-
-    <label>性別</label>
-    <select id="sex"><option value="male">男性</option><option value="female">女性</option></select>
-
-    <label>身長（cm）</label>
-    <input type="number" id="height">
-
-    <label>体重（kg）</label>
-    <input type="number" id="weight">
-
-    <label>体脂肪率（%）</label>
-    <input type="number" id="bodyfat">
-
-    <label>大会・撮影日</label>
-    <input type="date" id="targetDate">
-
-    <label>ディプリート（糖質枯渇）を行う？</label>
-    <select id="deplete"><option value="yes">する</option><option value="no">しない</option></select>
-
-    <label>カーボアップを行う？</label>
-    <select id="useCarbUp"><option value="yes">する</option><option value="no">しない</option></select>
-
-    <label>水抜きを行う？</label>
-    <select id="useWaterCut"><option value="yes">する</option><option value="no">しない</option></select>
-
-    <label>塩抜きを行う？</label>
-    <select id="useSaltCut"><option value="yes">する</option><option value="no">しない</option></select>
-
-    
-    <label>カフェイン摂取を行う？</label>
-    <select id="useCaffeine">
-      <option value="yes">する</option>
-      <option value="no">しない</option>
-    </select>
-
-    <label>トレーニング最終日（大会◯日前）</label>
-    <select id="lastTrainingDay">
-      <option value="7">7日前</option>
-      <option value="6">6日前</option>
-      <option value="5">5日前</option>
-      <option value="4">4日前</option>
-      <option value="3">3日前</option>
-    </select>
-
-    <label>パンプアップを行う？（大会当日の炭水化物と塩分に影響）</label>
-    <select id="doPump">
-      <option value="yes">する</option>
-      <option value="no">しない</option>
-    </select>
-
-    <button onclick="generatePlan()">ピーキングプランを表示</button>
-    
-
-    <div id="resultArea"><button onclick="window.print()">PDFとして保存 / 印刷</button>
-    </div>
-  </div>
-
-  <script>
+<div class="container">
+<h1>ピーキング計算機（論理対応版）</h1>
+<label>性別</label>
+<select id="sex"><option value="male">男性</option><option value="female">女性</option></select>
+<label>身長（cm）</label>
+<input id="height" type="number"/>
+<label>体重（kg）</label>
+<input id="weight" type="number"/>
+<label>体脂肪率（%）</label>
+<input id="bodyfat" type="number"/>
+<label>大会・撮影日</label>
+<input id="targetDate" type="date"/>
+<label>ディプリート（糖質枯渇）を行う？</label>
+<select id="deplete"><option value="yes">する</option><option value="no">しない</option></select>
+<label>カーボアップを行う？</label>
+<select id="useCarbUp"><option value="yes">する</option><option value="no">しない</option></select>
+<label>水抜きを行う？</label>
+<select id="useWaterCut"><option value="yes">する</option><option value="no">しない</option></select>
+<label>塩抜きを行う？</label>
+<select id="useSaltCut"><option value="yes">する</option><option value="no">しない</option></select>
+<label>カフェイン摂取を行う？</label>
+<select id="useCaffeine">
+<option value="yes">する</option>
+<option value="no">しない</option>
+</select>
+<label>トレーニング最終日（大会◯日前）</label>
+<select id="lastTrainingDay">
+<option value="7">7日前</option>
+<option value="6">6日前</option>
+<option value="5">5日前</option>
+<option value="4">4日前</option>
+<option value="3">3日前</option>
+<option value="2">2日前</option>
+<option value="1">1日前</option>
+<option value="0">大会当日</option>
+</select>
+<input id="tdee" placeholder="kcal" type="number"/><label>あなたのTDEE（1日の総消費カロリー）を入力してください（例：2500）</label><label>カーボ感受性（張りやすさ）</label>
+<select id="carbSensitivity">
+<option value="high">張りやすい</option>
+<option selected="" value="normal">普通</option>
+<option value="low">張りにくい</option>
+</select>
+<label>水感受性（むくみやすさ）</label>
+<select id="waterSensitivity">
+<option value="high">むくみやすい</option>
+<option selected="" value="normal">普通</option>
+<option value="low">むくみにくい</option>
+</select>
+<label>塩感受性（反応の強さ）</label>
+<select id="saltSensitivity">
+<option value="high">敏感</option>
+<option selected="" value="normal">普通</option>
+<option value="low">鈍感</option>
+</select>
+<label>大会は何時開始？</label>
+<select id="stageTime">
+<option value="am">午前</option>
+<option value="pm">午後</option>
+</select>
+<label>パンプアップを行う？（大会当日の炭水化物と塩分に影響）</label>
+<select id="doPump">
+<option value="yes">する</option>
+<option value="no">しない</option>
+</select>
+<button onclick="generatePlan()">ピーキングプランを表示</button>
+<div id="resultArea"><button onclick="window.print()">PDFとして保存 / 印刷</button>
+</div>
+</div>
+<script>
     function generatePlan() {
       const weight = parseFloat(document.getElementById("weight").value);
       const bodyfat = parseFloat(document.getElementById("bodyfat").value);
@@ -89,6 +99,7 @@
       const useCaffeine = document.getElementById("useCaffeine").value === "yes";
       const doPump = document.getElementById("doPump").value === "yes";
       const lastTrainingDay = parseInt(document.getElementById("lastTrainingDay").value);
+      const stageTime = document.getElementById("stageTime").value;
 
       let rows = "";
       for (let d = 7; d >= 0; d--) {
@@ -96,42 +107,44 @@
         date.setDate(date.getDate() - d);
         const label = d === 0 ? "大会当日" : `大会${d}日前`;
 
-        // 水分量
         let water = useWaterCut ? (d >= 4 ? weight * 120 : d === 2 ? weight * 50 : weight * 30) : weight * 100;
-
-        // 塩分量
         let salt = useSaltCut ? (d >= 4 ? 3 : d === 2 ? 1 : 0.5) : 4;
-
-        // カーボ量
         let carbs = "-";
+
         if (useCarbUp) {
           if (deplete && d >= 5 && d <= 2) {
             carbs = "0g（ディプリート）";
           } else if (d === 0 && doPump) {
-            carbs = Math.round(lbm * 12) + "g（パンプ）";
+            let total = Math.round(lbm * 12);
+            if (stageTime === "am") {
+              carbs = `朝${Math.round(total * 0.5)}g／直前${Math.round(total * 0.5)}g`;
+              salt = `朝2g／直前1g`;
+            } else {
+              carbs = `朝${Math.round(total * 0.3)}g／昼${Math.round(total * 0.4)}g／直前${Math.round(total * 0.3)}g`;
+              salt = `朝1.5g／昼1g／直前0.5g`;
+            }
           } else if (d <= 1) {
-            carbs = Math.round(lbm * 10) + "g";
+            let total = Math.round(lbm * 10);
+            carbs = `合計${total}g（3食分割）`;
           }
         } else {
           carbs = "軽め";
         }
 
-        // カフェイン量
         let caffeine = "-";
         if (useCaffeine && d <= 3 && d >= 1) {
           caffeine = Math.round(weight * 4) + "mg";
         }
 
-        // 備考欄
         let note = "";
         if (d === 0 && doPump) {
-          note = "パンプアップ予定あり";
+          note = stageTime === "am" ? "パンプ1〜1.5時間前（早朝）" : "パンプ1〜1.5時間前（昼前）";
         }
         if (d === lastTrainingDay) {
           note += (note ? "／" : "") + "トレーニング最終日";
         }
 
-        rows += `<tr><td>${date.toISOString().split("T")[0]}</td><td>${label}</td><td>${Math.round(water)}ml</td><td>${salt}g</td><td>${carbs}</td><td>${caffeine}</td><td>${note}</td></tr>`;
+        rows += `<tr><td>${date.toISOString().split("T")[0]}</td><td>${label}</td><td>${Math.round(water)}ml</td><td>${salt}</td><td>${carbs}</td><td>${caffeine}</td><td>${note}</td></tr>`;
       }
 
       document.getElementById("resultArea").innerHTML = `
@@ -142,6 +155,49 @@
         </table>
       `;
     }
+
+      // 感受性補正係数
+      const carbSensitivity = document.getElementById("carbSensitivity").value;
+      const waterSensitivity = document.getElementById("waterSensitivity").value;
+      const saltSensitivity = document.getElementById("saltSensitivity").value;
+
+      let carbFactor = 1.0;
+      if (carbSensitivity === "high") carbFactor = 0.85;
+      if (carbSensitivity === "low") carbFactor = 1.15;
+
+      let waterFactor = 1.0;
+      if (waterSensitivity === "high") waterFactor = 0.85;
+      if (waterSensitivity === "low") waterFactor = 1.15;
+
+      let saltFactor = 1.0;
+      if (saltSensitivity === "high") saltFactor = 0.75;
+      if (saltSensitivity === "low") saltFactor = 1.25;
+
+
+      const tdeeInput = parseFloat(document.getElementById("tdee").value) || 2500;
+      let pfcHtml = "<h3>PFC・カロリー目安（参考）</h3><ul>";
+
+      for (let d = 7; d >= 0; d--) {
+        let kcalTarget = "-";
+        if (d >= 5 && d <= 2) {
+          kcalTarget = Math.round(tdeeInput * 0.85) + "〜" + Math.round(tdeeInput * 0.9) + " kcal（ディプリート）";
+        } else if (d <= 1 && d !== 0) {
+          kcalTarget = Math.round(tdeeInput * 1.1) + "〜" + Math.round(tdeeInput * 1.3) + " kcal（カーボアップ）";
+        } else if (d === 0) {
+          kcalTarget = "1200〜2000 kcal（大会当日・調整）";
+        }
+
+        const label = d === 0 ? "大会当日" : `大会${d}日前`;
+        const protein = Math.round(lbm * 2.3);
+        const fat = Math.round(lbm * 0.9);
+        const carb = (d <= 1 && d !== 0) ? Math.round(lbm * 10 * carbFactor) : (deplete && d >= 5 && d <= 2 ? 0 : Math.round(lbm * 5 * carbFactor));
+        const kcalTotal = Math.round(protein * 4 + fat * 9 + carb * 4);
+
+        pfcHtml += `<li><strong>${label}</strong>：P ${protein}g / F ${fat}g / C ${carb}g → 合計 約${kcalTotal} kcal<br>
+                    推奨カロリー：${kcalTarget}</li>`;
+      }
+      pfcHtml += "</ul>";
+      document.getElementById("pfcSummary").innerHTML = pfcHtml;
 </script>
 </body>
 </html>
