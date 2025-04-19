@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<title>ピーキング戦略完全版</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<style>
+    body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
+    .container { background: #fff; padding: 20px; border-radius: 10px; max-width: 900px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, select { width: 100%; padding: 8px; margin-top: 5px; }
+    button { margin-top: 20px; padding: 10px; font-size: 1em; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th[title] { cursor: help; }
+    th { background-color: #eee; }
+    @media print {
+      body { -webkit-print-color-adjust: exact; }
+      table { page-break-inside: avoid; }
+    }
+  
+#adjustSummary { margin-top: 20px; padding: 10px; background: #e7f3fe; border-left: 5px solid #2196F3; }
+#output { margin-top: 20px; }
+button:hover { background: #45a049; }
+h2 { color: #333; margin-top: 40px; }
+@media (max-width: 600px) {
+  input, select, button { font-size: 1em; }
+  h1 { font-size: 1.5em; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>ピーキング戦略完全版</h1>
+<button onclick="window.print()">PDFとして保存 / 印刷</button>
+<label>体重（kg）</label>
+<input id="weight" placeholder="例：70" type="number"/>
+<label>TDEE（1日の消費カロリー）</label>
+<input id="tdee" placeholder="例：2500" type="number"/>
+<label>体脂肪率（％）</label>
+<input id="bodyfat" placeholder="例：15" type="number"/>
+<label>ピーキング期間</label>
+<select id="days">
+<option value="0">ピーキングなし</option>
+<option value="3">3日間</option>
+<option value="5">5日間</option>
+<option selected="" value="7">7日間</option>
+<option value="10">10日間</option>
+</select>
+<label>水分感受性</label>
+<select id="waterSensitivity">
+<option value="low">低</option>
+<option selected="" value="medium">中</option>
+<option value="high">高</option>
+</select>
+<label>塩分感受性</label>
+<select id="saltSensitivity">
+<option value="low">低</option>
+<option selected="" value="medium">中</option>
+<option value="high">高</option>
+</select>
+<label>カーボ感受性</label>
+<select id="carbSensitivity">
+<option value="low">低</option>
+<option selected="" value="medium">中</option>
+<option value="high">高</option>
+</select>
+<button onclick="generateStrategy()">戦略を表示</button>
+<div id="adjustSummary"></div><div id="output"></div>
+<div id="timeScheduleSection">
+<h2>大会当日のタイムスケジュール</h2>
+<label>起床時間</label><input type="time"/>
+<label>朝食時間</label><input type="time"/>
+<label>パンプアップ開始時間</label><input type="time"/>
+<label>ステージ開始時間</label><input type="time"/>
+<label>就寝時間</label><input type="time"/>
+</div>
+</div>
+<script>
+window.onload = function() {
+  const saved = JSON.parse(localStorage.getItem("peakingInputs"));
+  if (saved) {
+    document.getElementById("weight").value = saved.weight;
+    document.getElementById("tdee").value = saved.tdee;
+    document.getElementById("bodyfat").value = saved.bodyfat;
+    document.getElementById("days").value = saved.days;
+    document.getElementById("waterSensitivity").value = saved.wSens;
+    document.getElementById("saltSensitivity").value = saved.sSens;
+    document.getElementById("carbSensitivity").value = saved.cSens;
+  }
+};
+
+function generateStrategy() {
+  const days = parseInt(document.getElementById("days").value);
+  const weight = parseFloat(document.getElementById("weight").value);
+  const tdee = parseFloat(document.getElementById("tdee").value);
+  const bodyfat = parseFloat(document.getElementById("bodyfat").value);
+  const wSens = document.getElementById("waterSensitivity").value;
+  const sSens = document.getElementById("saltSensitivity").value;
+  const cSens = document.getElementById("carbSensitivity").value;
+
+  if (!weight || !tdee || !bodyfat || days === 0) {
+    document.getElementById("output").innerHTML = "<p>全ての項目を入力してください。</p>";
+    return;
+  }
+
+  localStorage.setItem("peakingInputs", JSON.stringify({
+    weight, tdee, bodyfat, days, wSens, sSens, cSens
+  }));
+
+  let bfAdj = 1.0;
+  if (bodyfat >= 25) { bfAdj = 0.9; }
+  else if (bodyfat < 15) { bfAdj = 1.1; }
+
+  function adjust(base, sens) {
+    let factor = (sens === "low") ? 1.1 : (sens === "high") ? 0.9 : 1.0;
+    return base * factor * bfAdj;
+  }
+
+  document.getElementById("adjustSummary").innerHTML = `
+    <p><strong>補正サマリー：</strong><br>
+    体脂肪補正: ${bfAdj.toFixed(2)}<br>
+    水分感受性: ${wSens}<br>
+    塩分感受性: ${sSens}<br>
+    カーボ感受性: ${cSens}
+    </p>`;
+
+  const waterBase = [4,3,2,1.5,1,0.5,0.3,0.2,0.2,0.1];
+  const saltBase = [100,100,80,60,50,30,10,5,5,2];
+  const carbBase = [50,40,30,20,100,150,120,100,80,50];
+
+  let html = "<div style='overflow-x:auto;'><table><tr><th title='各日のピーキング戦略の日付'>日付</th><th title='水分摂取量 (L)'>水分 (L)</th><th title='塩分摂取目安 (%)'>塩分 (%)</th><th title='カーボ摂取割合'>カーボ (%)</th><th title='カーボ摂取量 (g)'>カーボ量 (g)</th><th title='体重に基づくカフェイン摂取量'>カフェイン (mg)</th></tr>";
+  for (let i = days - 1; i >= 0; i--) {
+    const carbRatio = carbBase[i] || 0;
+    const carbGrams = Math.round(adjust(tdee * (carbRatio / 100) / 4, cSens));
+    html += `<tr><td>${i === 0 ? '大会当日' : i + '日前'}</td>
+      <td>${adjust(waterBase[i] || 0, wSens).toFixed(1)}</td>
+      <td>${adjust(saltBase[i] || 0, sSens).toFixed(0)}</td>
+      <td>${carbRatio}</td>
+      <td>${carbGrams}</td>
+      <td>${i === 0 ? Math.min(Math.round(weight * 4), 400) : "-"}</td></tr>`;
+  }
+  html += "</table></div>";
+  document.getElementById("output").innerHTML = html;
+}
+</script>
+</body>
+</html>
