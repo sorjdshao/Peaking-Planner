@@ -16,7 +16,23 @@
     th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
     th { background: #f7f7f7; }
   </style>
-</head>
+<style>
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+}
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+tr.highlight {
+  background-color: #ffeeba;
+  font-weight: bold;
+}
+</style></head>
 <body>
 <div class="container">
 <h1>ピーキング計算機（論理対応版）</h1>
@@ -72,7 +88,7 @@
 <option selected="" value="normal">普通</option>
 <option value="low">鈍感</option>
 </select>
-<label>大会は何時開始？</label>
+<label>大会開始時間を入力してください（例：10:00）</label><input id="stageTimeInput" type="time" value="10:00"/>
 <select id="stageTime">
 <option value="am">午前</option>
 <option value="pm">午後</option>
@@ -84,7 +100,7 @@
 </select>
 <button onclick="generatePlan()">ピーキングプランを表示</button>
 <div id="resultArea"><button onclick="window.print()">PDFとして保存 / 印刷</button>
-</div>
+</div><div id="stageSchedule" style="margin-top:20px;"></div>
 </div>
 <script>
     function generatePlan() {
@@ -144,7 +160,8 @@
           note += (note ? "／" : "") + "トレーニング最終日";
         }
 
-        rows += `<tr><td>${date.toISOString().split("T")[0]}</td><td>${label}</td><td>${Math.round(water)}ml</td><td>${salt}</td><td>${carbs}</td><td>${caffeine}</td><td>${note}</td></tr>`;
+        let rowClass = (d === 0) ? "highlight" : "";
+        rows += `<tr class="${rowClass}">`<td>${date.toISOString().split("T")[0]}</td><td>${label}</td><td>${Math.round(water)}ml</td><td>${salt}</td><td>${carbs}</td><td>${caffeine}</td><td>${note}</td></tr>`;
       }
 
       document.getElementById("resultArea").innerHTML = `
@@ -198,6 +215,33 @@
       }
       pfcHtml += "</ul>";
       document.getElementById("pfcSummary").innerHTML = pfcHtml;
+
+
+      // 大会当日スケジュール生成
+      const stageTimeInput = document.getElementById("stageTimeInput").value || "10:00";
+      const [hourStr, minStr] = stageTimeInput.split(":");
+      const stageHour = parseInt(hourStr), stageMin = parseInt(minStr);
+      const baseDate = new Date();
+      baseDate.setHours(stageHour, stageMin, 0, 0);
+
+      const timePoints = [
+        { offset: -300, label: "起床・水200ml・軽いストレッチ" },
+        { offset: -270, label: "朝食：ご飯100g＋卵2個＋塩1g" },
+        { offset: -150, label: "軽めの炭水化物：バナナ or 米＋塩0.5g" },
+        { offset: -90,  label: "パンプ前補給：はちみつ・ゼリー・カフェイン（任意）" },
+        { offset: -30,  label: "パンプアップ開始" },
+        { offset: 0,    label: "ステージ開始" }
+      ];
+
+      let schedHtml = "<h3>大会当日の時間割</h3><ul>";
+      for (const point of timePoints) {
+        const t = new Date(baseDate.getTime() + point.offset * 60000);
+        const hh = String(t.getHours()).padStart(2, "0");
+        const mm = String(t.getMinutes()).padStart(2, "0");
+        schedHtml += `<li><strong>${hh}:${mm}</strong> - ${point.label}</li>`;
+      }
+      schedHtml += "</ul>";
+      document.getElementById("stageSchedule").innerHTML = schedHtml;
 </script>
 </body>
 </html>
