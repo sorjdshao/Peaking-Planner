@@ -67,84 +67,106 @@ h2 { color: #333; margin-top: 40px; }
 <option selected="" value="medium">中</option>
 <option value="high">高</option>
 </select>
-<button onclick="generateStrategy()">戦略を表示</button>
-<div id="adjustSummary"></div><div id="output"></div>
+<h2>1日のPFC目標（g）</h2>
+<label>タンパク質（P）</label>
+<label>食事回数（回）</label>
+<select id="mealCount">
+<option value="3">3回</option>
+<option value="4">4回</option>
+<option selected="" value="5">5回</option>
+<option value="6">6回</option>
+</select>
+<input id="protein" placeholder="例：150" type="number"/>
+<label>脂質（F）</label>
+<input id="fat" placeholder="例：50" type="number"/>
+<label>炭水化物（C）</label>
+<input id="carb" placeholder="例：250" type="number"/>
+<button onclick="generateStrategy()">戦略を表示</button><div id="mealPlanOutput"><h2>当日の食事タイミングと内容</h2></div>
+<div id="adjustSummary"></div><div id="output"></div><div id="timelineOutput"></div>
 <div id="timeScheduleSection">
 <h2>大会当日のタイムスケジュール</h2>
-<label>起床時間</label><input type="time"/>
-<label>朝食時間</label><input type="time"/>
-<label>パンプアップ開始時間</label><input type="time"/>
-<label>ステージ開始時間</label><input type="time"/>
-<label>就寝時間</label><input type="time"/>
+<label>起床時間</label><input id="wakeTime" type="time"/>
+<label>朝食時間</label><input id="breakfastTime" type="time"/>
+<label>ステージ開始時間</label><input id="stageTime" type="time"/><label>パンプアップ開始時間</label><input id="pumpTime" type="time"/>
 </div>
 </div>
 <script>
-window.onload = function() {
-  const saved = JSON.parse(localStorage.getItem("peakingInputs"));
-  if (saved) {
-    document.getElementById("weight").value = saved.weight;
-    document.getElementById("tdee").value = saved.tdee;
-    document.getElementById("bodyfat").value = saved.bodyfat;
-    document.getElementById("days").value = saved.days;
-    document.getElementById("waterSensitivity").value = saved.wSens;
-    document.getElementById("saltSensitivity").value = saved.sSens;
-    document.getElementById("carbSensitivity").value = saved.cSens;
-  }
-};
+function formatTime(date) {
+  return date.toTimeString().slice(0, 5);
+}
 
-function generateStrategy() {
-  const days = parseInt(document.getElementById("days").value);
-  const weight = parseFloat(document.getElementById("weight").value);
-  const tdee = parseFloat(document.getElementById("tdee").value);
-  const bodyfat = parseFloat(document.getElementById("bodyfat").value);
-  const wSens = document.getElementById("waterSensitivity").value;
-  const sSens = document.getElementById("saltSensitivity").value;
-  const cSens = document.getElementById("carbSensitivity").value;
+function generateMealPlan() {
+  const protein = parseInt(document.getElementById("protein").value);
+  const fat = parseInt(document.getElementById("fat").value);
+  const carb = parseInt(document.getElementById("carb").value);
+  const meals = parseInt(document.getElementById("mealCount").value);
 
-  if (!weight || !tdee || !bodyfat || days === 0) {
-    document.getElementById("output").innerHTML = "<p>全ての項目を入力してください。</p>";
+  const wake = document.getElementById("wakeTime").value;
+  const pump = document.getElementById("pumpTime").value;
+  const stage = document.getElementById("stageTime").value;
+
+  if (!protein || !fat || !carb || !wake || !pump || !stage || isNaN(meals)) {
+    document.getElementById("mealPlanOutput").innerHTML = "<p>PFC目標、食事回数、起床時間、パンプ時間、ステージ時間をすべて入力してください。</p>";
     return;
   }
 
-  localStorage.setItem("peakingInputs", JSON.stringify({
-    weight, tdee, bodyfat, days, wSens, sSens, cSens
-  }));
+  const [startH, startM] = wake.split(":").map(Number);
+  const [pumpH, pumpM] = pump.split(":").map(Number);
+  const [stageH, stageM] = stage.split(":").map(Number);
+  const weight = parseFloat(document.getElementById("weight").value);
+  const carbDose = Math.round(weight * 0.5);  // g
+  const caffeineDose = Math.min(Math.round(weight * 3), 400);  // mg
 
-  let bfAdj = 1.0;
-  if (bodyfat >= 25) { bfAdj = 0.9; }
-  else if (bodyfat < 15) { bfAdj = 1.1; }
+  const startTime = new Date(0, 0, 0, startH, startM);
+  const pumpTime = new Date(0, 0, 0, pumpH, pumpM);
+  const stageTime = new Date(0, 0, 0, stageH, stageM);
 
-  function adjust(base, sens) {
-    let factor = (sens === "low") ? 1.1 : (sens === "high") ? 0.9 : 1.0;
-    return base * factor * bfAdj;
+  const mealDuration = (pumpTime - startTime) / 60000;
+  const interval = Math.floor(mealDuration / (meals - 1));
+
+  let current = new Date(startTime);
+  let html = "<ul>";
+  for (let i = 0; i < meals - 2; i++) {
+    const timeStr = formatTime(current);
+    const pShare = Math.round(protein / meals);
+    const fShare = Math.round(fat / meals);
+    const cShare = Math.round(carb / meals);
+    html += `<li>${timeStr}：通常食 P${pShare}g / F${fShare}g / C${cShare}g</li>`;
+    current.setMinutes(current.getMinutes() + interval);
   }
 
-  document.getElementById("adjustSummary").innerHTML = `
-    <p><strong>補正サマリー：</strong><br>
-    体脂肪補正: ${bfAdj.toFixed(2)}<br>
-    水分感受性: ${wSens}<br>
-    塩分感受性: ${sSens}<br>
-    カーボ感受性: ${cSens}
-    </p>`;
+  // Add pump-specific meals
+  const pump30 = new Date(pumpTime.getTime() - 30 * 60000);
+  const pump15 = new Date(pumpTime.getTime() - 15 * 60000);
+  html += `<li>${formatTime(pump30)}：パンプ30分前 - ジャムパン（C${carbDose}g）、塩タブレット</li>`;
+  html += `<li>${formatTime(pump15)}：パンプ15分前 - カフェイン（${caffeineDose}mg）＋水200ml</li>`;
+  html += `<li>${formatTime(pumpTime)}：パンプアップ開始（ステージの約1時間以内が目安）</li>`;
+  html += `<li>${formatTime(stageTime)}：ステージ - 直前補給完了</li>`;
+  html += "</ul>";
 
-  const waterBase = [4,3,2,1.5,1,0.5,0.3,0.2,0.2,0.1];
-  const saltBase = [100,100,80,60,50,30,10,5,5,2];
-  const carbBase = [50,40,30,20,100,150,120,100,80,50];
-
-  let html = "<div style='overflow-x:auto;'><table><tr><th title='各日のピーキング戦略の日付'>日付</th><th title='水分摂取量 (L)'>水分 (L)</th><th title='塩分摂取目安 (%)'>塩分 (%)</th><th title='カーボ摂取割合'>カーボ (%)</th><th title='カーボ摂取量 (g)'>カーボ量 (g)</th><th title='体重に基づくカフェイン摂取量'>カフェイン (mg)</th></tr>";
-  for (let i = days - 1; i >= 0; i--) {
-    const carbRatio = carbBase[i] || 0;
-    const carbGrams = Math.round(adjust(tdee * (carbRatio / 100) / 4, cSens));
-    html += `<tr><td>${i === 0 ? '大会当日' : i + '日前'}</td>
-      <td>${adjust(waterBase[i] || 0, wSens).toFixed(1)}</td>
-      <td>${adjust(saltBase[i] || 0, sSens).toFixed(0)}</td>
-      <td>${carbRatio}</td>
-      <td>${carbGrams}</td>
-      <td>${i === 0 ? Math.min(Math.round(weight * 4), 400) : "-"}</td></tr>`;
-  }
-  html += "</table></div>";
-  document.getElementById("output").innerHTML = html;
+  html += `<p><strong>合計PFC：</strong> P${protein}g / F${fat}g / C${carb}g</p>`;
+  document.getElementById("mealPlanOutput").innerHTML = html;
 }
-</script>
-</body>
+
+// Final integration
+const prevGenerateStrategy = generateStrategy;
+generateStrategy = function() {
+  prevGenerateStrategy();
+  generateTimeline();
+  generateMealPlan();
+}
+
+document.getElementById("stageTime").addEventListener("change", () => {
+  const val = document.getElementById("stageTime").value;
+  if (val) {
+    const [h, m] = val.split(":").map(Number);
+    const stageDate = new Date(0, 0, 0, h, m);
+    stageDate.setMinutes(stageDate.getMinutes() - 60);
+    const formatted = stageDate.toTimeString().slice(0, 5);
+    document.getElementById("pumpTime").value = formatted;
+  }
+});
+
+// ※パンプはステージの約60分以内に開始するのが理想です。
+</script></body>
 </html>
