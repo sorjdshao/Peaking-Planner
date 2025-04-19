@@ -3,7 +3,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>ピーキング計算機（統合版）</title>
+  <title>ピーキング計算機（論理対応版）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body { font-family: sans-serif; background: #f0f0f0; padding: 20px; }
@@ -12,24 +12,16 @@
     input, select { width: 100%; padding: 10px; margin-top: 5px; margin-bottom: 15px; font-size: 1em; }
     button { background: #4CAF50; color: white; padding: 12px 20px; border: none; border-radius: 5px; font-size: 1em; width: 100%; }
     table { width: 100%; border-collapse: collapse; margin-top: 30px; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
     th { background: #f7f7f7; }
-    h2 { margin-top: 40px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>ピーキング計算機（統合版）</h1>
+    <h1>ピーキング計算機（論理対応版）</h1>
 
-    <!-- 入力フォーム -->
     <label>性別</label>
-    <select id="sex">
-      <option value="male">男性</option>
-      <option value="female">女性</option>
-    </select>
-
-    <label>年齢</label>
-    <input type="number" id="age">
+    <select id="sex"><option value="male">男性</option><option value="female">女性</option></select>
 
     <label>身長（cm）</label>
     <input type="number" id="height">
@@ -43,56 +35,113 @@
     <label>大会・撮影日</label>
     <input type="date" id="targetDate">
 
-    <label>カーボディプリート（糖質枯渇）を行う？</label>
-    <select id="deplete">
-      <option value="yes">はい</option>
-      <option value="no">いいえ</option>
+    <label>ディプリート（糖質枯渇）を行う？</label>
+    <select id="deplete"><option value="yes">する</option><option value="no">しない</option></select>
+
+    <label>カーボアップを行う？</label>
+    <select id="useCarbUp"><option value="yes">する</option><option value="no">しない</option></select>
+
+    <label>水抜きを行う？</label>
+    <select id="useWaterCut"><option value="yes">する</option><option value="no">しない</option></select>
+
+    <label>塩抜きを行う？</label>
+    <select id="useSaltCut"><option value="yes">する</option><option value="no">しない</option></select>
+
+    
+    <label>カフェイン摂取を行う？</label>
+    <select id="useCaffeine">
+      <option value="yes">する</option>
+      <option value="no">しない</option>
     </select>
 
-    <button onclick="generatePeakingPlan()">ピーキングプランを表示</button>
+    <label>トレーニング最終日（大会◯日前）</label>
+    <select id="lastTrainingDay">
+      <option value="7">7日前</option>
+      <option value="6">6日前</option>
+      <option value="5">5日前</option>
+      <option value="4">4日前</option>
+      <option value="3">3日前</option>
+    </select>
 
-    <!-- 出力結果 -->
-    <div id="resultArea"></div>
+    <label>パンプアップを行う？（大会当日の炭水化物と塩分に影響）</label>
+    <select id="doPump">
+      <option value="yes">する</option>
+      <option value="no">しない</option>
+    </select>
+
+    <button onclick="generatePlan()">ピーキングプランを表示</button>
+    
+
+    <div id="resultArea"><button onclick="window.print()">PDFとして保存 / 印刷</button>
+    </div>
   </div>
 
   <script>
-    function generatePeakingPlan() {
+    function generatePlan() {
       const weight = parseFloat(document.getElementById("weight").value);
       const bodyfat = parseFloat(document.getElementById("bodyfat").value);
-      const dateStr = document.getElementById("targetDate").value;
+      const targetDate = new Date(document.getElementById("targetDate").value);
+      const lbm = weight * (1 - bodyfat / 100);
+      const useCarbUp = document.getElementById("useCarbUp").value === "yes";
+      const useWaterCut = document.getElementById("useWaterCut").value === "yes";
+      const useSaltCut = document.getElementById("useSaltCut").value === "yes";
+      const deplete = document.getElementById("deplete").value === "yes";
+      const useCaffeine = document.getElementById("useCaffeine").value === "yes";
+      const doPump = document.getElementById("doPump").value === "yes";
+      const lastTrainingDay = parseInt(document.getElementById("lastTrainingDay").value);
 
-      if (isNaN(weight) || isNaN(bodyfat) || !dateStr) {
-        alert("体重・体脂肪率・日付を正しく入力してください。");
-        return;
+      let rows = "";
+      for (let d = 7; d >= 0; d--) {
+        const date = new Date(targetDate);
+        date.setDate(date.getDate() - d);
+        const label = d === 0 ? "大会当日" : `大会${d}日前`;
+
+        // 水分量
+        let water = useWaterCut ? (d >= 4 ? weight * 120 : d === 2 ? weight * 50 : weight * 30) : weight * 100;
+
+        // 塩分量
+        let salt = useSaltCut ? (d >= 4 ? 3 : d === 2 ? 1 : 0.5) : 4;
+
+        // カーボ量
+        let carbs = "-";
+        if (useCarbUp) {
+          if (deplete && d >= 5 && d <= 2) {
+            carbs = "0g（ディプリート）";
+          } else if (d === 0 && doPump) {
+            carbs = Math.round(lbm * 12) + "g（パンプ）";
+          } else if (d <= 1) {
+            carbs = Math.round(lbm * 10) + "g";
+          }
+        } else {
+          carbs = "軽め";
+        }
+
+        // カフェイン量
+        let caffeine = "-";
+        if (useCaffeine && d <= 3 && d >= 1) {
+          caffeine = Math.round(weight * 4) + "mg";
+        }
+
+        // 備考欄
+        let note = "";
+        if (d === 0 && doPump) {
+          note = "パンプアップ予定あり";
+        }
+        if (d === lastTrainingDay) {
+          note += (note ? "／" : "") + "トレーニング最終日";
+        }
+
+        rows += `<tr><td>${date.toISOString().split("T")[0]}</td><td>${label}</td><td>${Math.round(water)}ml</td><td>${salt}g</td><td>${carbs}</td><td>${caffeine}</td><td>${note}</td></tr>`;
       }
-
-      const lbm = weight * (1 - bodyfat / 100); // 除脂肪体重
-      const eventDate = new Date(dateStr);
-      const plan = [];
-
-      // 簡易サンプルプラン（後で詳細化）
-      const actions = [
-        { daysBefore: 7, action: "減塩開始", salt: "5g", water: `${(weight * 100).toFixed(0)}ml`, carbs: "-" },
-        { daysBefore: 4, action: "水増し開始", salt: "3g", water: `${(weight * 120).toFixed(0)}ml`, carbs: "-" },
-        { daysBefore: 2, action: "水抜き", salt: "1g", water: `${(weight * 50).toFixed(0)}ml`, carbs: "-" },
-        { daysBefore: 1, action: "カーボアップ", salt: "1g", water: `${(weight * 30).toFixed(0)}ml`, carbs: `${Math.round(lbm * 10)}g` },
-        { daysBefore: 0, action: "大会当日", salt: "0.5g", water: "少量調整", carbs: "パンプ前調整" }
-      ];
-
-      actions.forEach(step => {
-        const d = new Date(eventDate);
-        d.setDate(d.getDate() - step.daysBefore);
-        plan.push(`<tr><td>${d.toISOString().split("T")[0]}</td><td>${step.action}</td><td>${step.salt}</td><td>${step.water}</td><td>${step.carbs}</td></tr>`);
-      });
 
       document.getElementById("resultArea").innerHTML = `
         <h2>ピーキングスケジュール</h2>
         <table>
-          <tr><th>日付</th><th>内容</th><th>塩分</th><th>水分</th><th>炭水化物</th></tr>
-          ${plan.join("")}
+          <tr><th>日付</th><th>大会まで</th><th>水分</th><th>塩分</th><th>炭水化物</th><th>カフェイン</th><th>備考</th></tr>
+          ${rows}
         </table>
       `;
     }
-  </script>
+</script>
 </body>
 </html>
