@@ -80,6 +80,33 @@
   </select>
 
   <button onclick="displayFullSchedule()">全日スケジュールを表示</button>
+  
+  const errorOutput = document.getElementById("inputError");
+let errorMessages = [];
+
+if (isNaN(weight) || weight < 30 || weight > 200) {
+  weightInput.classList.add("input-error");
+  errorMessages.push("体重（30〜200kg）を入力してください。");
+}
+if (isNaN(tdee) || tdee < 1000 || tdee > 6000) {
+  tdeeInput.classList.add("input-error");
+  errorMessages.push("TDEE（1000〜6000）を入力してください。");
+}
+if (isNaN(meals) || meals < 3) {
+  mealInput.classList.add("input-error");
+  errorMessages.push("食事回数は3以上で入力してください。");
+}
+if (!wake) {
+  wakeInput.classList.add("input-error");
+  errorMessages.push("起床時間を入力してください。");
+}
+
+if (errorMessages.length > 0) {
+  errorOutput.innerHTML = errorMessages.join("<br>");
+  return;
+} else {
+  errorOutput.innerHTML = "";
+}
   <div id="output"></div>
 </div>
 
