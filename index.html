@@ -55,9 +55,6 @@
   <label>起床時間</label>
   <input id="wakeTime" type="time" />
 
-  <label>ステージ時間（最終日のパンプアップ時間の参考）</label>
-  <input id="stageTime" type="time" />
-
   <label>水分感受性</label>
   <select id="waterSensitivity">
     <option value="low">低</option>
@@ -98,7 +95,6 @@ function displayFullSchedule() {
   const leanWeight = weight * (1 - bodyfat / 100);
 
   let baseProtein, baseFat, baseCarb;
-
   if (bodyfat < 10) {
     baseProtein = 0.30; baseFat = 0.25; baseCarb = 0.45;
   } else if (bodyfat < 20) {
@@ -119,15 +115,8 @@ function displayFullSchedule() {
   const meals = parseInt(mealInput.value);
   const wake = wakeInput.value;
 
-  const stageInput = document.getElementById("stageTime");
-  const stage = stageInput.value;
-  let stageH = null, stageM = null;
-  if (stage && stage.includes(":")) {
-    [stageH, stageM] = stage.split(":").map(Number);
-  }
-
   let errorMessages = [];
-  const inputsToValidate = [weightInput, tdeeInput, mealInput, wakeInput, stageInput];
+  const inputsToValidate = [weightInput, tdeeInput, mealInput, wakeInput];
   inputsToValidate.forEach(el => el.classList.remove("input-error"));
 
   if (isNaN(weight) || weight < 30 || weight > 200) {
@@ -145,10 +134,6 @@ function displayFullSchedule() {
   if (!wake) {
     wakeInput.classList.add("input-error");
     errorMessages.push("起床時間を入力してください。");
-  }
-  if (!stage || !stage.includes(":")) {
-    stageInput.classList.add("input-error");
-    errorMessages.push("ステージ時間を入力してください。");
   }
 
   if (errorMessages.length > 0) {
@@ -199,19 +184,6 @@ function displayFullSchedule() {
       const t = time.toTimeString().slice(0, 5);
       rows += `<tr><td>${t}</td><td>食事${i + 1}</td><td>${pMeal}g</td><td>${fMeal}g</td><td>${cMeal}g</td></tr>`;
       time.setMinutes(time.getMinutes() + interval);
-    }
-
-    if (p.day === days) {
-      const pumpCarb = Math.round(leanWeight * 0.5);
-      const caffeine = Math.min(Math.round(leanWeight * 3), 400);
-
-      const stageTime = new Date(0, 0, 0, stageH, stageM);
-      const pumpTime = new Date(stageTime.getTime() - 30 * 60000);
-      const stimTime = new Date(stageTime.getTime() - 15 * 60000);
-
-      rows += `<tr><td>${pumpTime.toTimeString().slice(0,5)}</td><td>パンプ30分前（炭水化物）</td><td>-</td><td>-</td><td>${pumpCarb}g</td></tr>`;
-      rows += `<tr><td>${stimTime.toTimeString().slice(0,5)}</td><td>パンプ15分前（カフェイン）</td><td>-</td><td>-</td><td>${caffeine}mg</td></tr>`;
-      rows += `<tr><td>${stageTime.toTimeString().slice(0,5)}</td><td>パンプアップ（ステージ）</td><td>-</td><td>-</td><td>-</td></tr>`;
     }
 
     output.innerHTML += `
