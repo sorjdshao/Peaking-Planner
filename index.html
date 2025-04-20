@@ -16,20 +16,18 @@
     th { background-color: #eee; }
     .day-block { margin-bottom: 40px; }
     .input-error { border: 2px solid red; }
-  
-
-@media print {
-  button { display: none; }
-  body { -webkit-print-color-adjust: exact; }
-  table { page-break-inside: avoid; }
-}
-</style>
+    @media print {
+      button { display: none; }
+      body { -webkit-print-color-adjust: exact; }
+      table { page-break-inside: avoid; }
+    }
+  </style>
 </head>
 <body>
 <div class="container">
   <h1>ピーキング戦略・最終版</h1>
 
-<button onclick="window.print()">PDFとして保存 / 印刷</button>
+  <button onclick="window.print()">PDFとして保存 / 印刷</button>
 
   <label>体重（kg）</label>
   <input id="weight" type="number" placeholder="例：70" />
@@ -80,33 +78,8 @@
   </select>
 
   <button onclick="displayFullSchedule()">全日スケジュールを表示</button>
-  
-  const errorOutput = document.getElementById("inputError");
-let errorMessages = [];
 
-if (isNaN(weight) || weight < 30 || weight > 200) {
-  weightInput.classList.add("input-error");
-  errorMessages.push("体重（30〜200kg）を入力してください。");
-}
-if (isNaN(tdee) || tdee < 1000 || tdee > 6000) {
-  tdeeInput.classList.add("input-error");
-  errorMessages.push("TDEE（1000〜6000）を入力してください。");
-}
-if (isNaN(meals) || meals < 3) {
-  mealInput.classList.add("input-error");
-  errorMessages.push("食事回数は3以上で入力してください。");
-}
-if (!wake) {
-  wakeInput.classList.add("input-error");
-  errorMessages.push("起床時間を入力してください。");
-}
-
-if (errorMessages.length > 0) {
-  errorOutput.innerHTML = errorMessages.join("<br>");
-  return;
-} else {
-  errorOutput.innerHTML = "";
-}
+  <div id="inputError" style="color: red; margin-top: 10px;"></div>
   <div id="output"></div>
 </div>
 
@@ -116,96 +89,111 @@ function displayFullSchedule() {
   const tdeeInput = document.getElementById("tdee");
   const mealInput = document.getElementById("mealCount");
   const wakeInput = document.getElementById("wakeTime");
+  const errorOutput = document.getElementById("inputError");
 
   const weight = parseFloat(weightInput.value);
   const tdee = parseFloat(tdeeInput.value);
   const meals = parseInt(mealInput.value);
   const wake = wakeInput.value;
 
-  let isValid = true;
+  let errorMessages = [];
   [weightInput, tdeeInput, mealInput, wakeInput].forEach(el => el.classList.remove("input-error"));
-  if (isNaN(weight) || weight < 30 || weight > 200) { weightInput.classList.add("input-error"); isValid = false; }
-  if (isNaN(tdee) || tdee < 1000 || tdee > 6000) { tdeeInput.classList.add("input-error"); isValid = false; }
-  if (isNaN(meals) || meals < 3) { mealInput.classList.add("input-error"); isValid = false; }
-  if (!wake) { wakeInput.classList.add("input-error"); isValid = false; }
 
-  if (!isValid) {
-    alert("すべての必須項目を正しく入力してください。");
-    return;
+  if (isNaN(weight) || weight < 30 || weight > 200) {
+    weightInput.classList.add("input-error");
+    errorMessages.push("体重（30〜200kg）を入力してください。");
+  }
+  if (isNaN(tdee) || tdee < 1000 || tdee > 6000) {
+    tdeeInput.classList.add("input-error");
+    errorMessages.push("TDEE（1000〜6000）を入力してください。");
+  }
+  if (isNaN(meals) || meals < 3) {
+    mealInput.classList.add("input-error");
+    errorMessages.push("食事回数は3以上で入力してください。");
+  }
+  if (!wake) {
+    wakeInput.classList.add("input-error");
+    errorMessages.push("起床時間を入力してください。");
   }
 
- const days = parseInt(document.getElementById("days").value);
-const waterSens = document.getElementById("waterSensitivity").value;
-const saltSens = document.getElementById("saltSensitivity").value;
-const carbSens = document.getElementById("carbSensitivity").value;
-const [wakeH, wakeM] = wake.split(":").map(Number);
-const output = document.getElementById("output");
+  if (errorMessages.length > 0) {
+    errorOutput.innerHTML = errorMessages.join("<br>");
+    return;
+  } else {
+    errorOutput.innerHTML = "";
+  }
 
-const carbRate = { low: 0.45, medium: 0.5, high: 0.55 }[carbSens];
-const fatRate = 0.2;
-const proteinRate = 1 - carbRate - fatRate;
+  const days = parseInt(document.getElementById("days").value);
+  const waterSens = document.getElementById("waterSensitivity").value;
+  const saltSens = document.getElementById("saltSensitivity").value;
+  const carbSens = document.getElementById("carbSensitivity").value;
+  const [wakeH, wakeM] = wake.split(":").map(Number);
+  const output = document.getElementById("output");
 
-const plan = {
-  3: [0.8, 0.6, 1.2],
-  5: [0.8, 0.7, 0.6, 1.0, 1.2],
-  7: [0.9, 0.8, 0.7, 0.6, 1.0, 1.1, 1.2]
-}[days].map((rate, i) => ({
-  day: i + 1,
-  tdeeRatio: rate,
-  calories: Math.round(rate * tdee),
-  baseWater: (6 - i * 0.5),
-  baseSalt: Math.max(16 - i * 2, 3)
-}));
+  const carbRate = { low: 0.45, medium: 0.5, high: 0.55 }[carbSens];
+  const fatRate = 0.2;
+  const proteinRate = 1 - carbRate - fatRate;
 
-const adjust = (base, sens) => base * ({ low: 1.2, medium: 1.0, high: 0.8 }[sens]);
+  const plan = {
+    3: [0.8, 0.6, 1.2],
+    5: [0.8, 0.7, 0.6, 1.0, 1.2],
+    7: [0.9, 0.8, 0.7, 0.6, 1.0, 1.1, 1.2]
+  }[days].map((rate, i) => ({
+    day: i + 1,
+    tdeeRatio: rate,
+    calories: Math.round(rate * tdee),
+    baseWater: (6 - i * 0.5),
+    baseSalt: Math.max(16 - i * 2, 3)
+  }));
 
-output.innerHTML = "";
-const dayMinutes = 14 * 60;
-const interval = Math.floor(dayMinutes / (meals - 1));
-const safeWeight = isNaN(weight) ? 70 : weight;
+  const adjust = (base, sens) => base * ({ low: 1.2, medium: 1.0, high: 0.8 }[sens]);
 
-plan.forEach(p => {
-  const protein = Math.round((p.calories * proteinRate) / 4);
-  const fat = Math.round((p.calories * fatRate) / 9);
-  const carb = Math.round((p.calories * carbRate) / 4);
-  const pMeal = Math.round(protein / meals);
-  const fMeal = Math.round(fat / meals);
-  const cMeal = Math.round(carb / meals);
+  output.innerHTML = "";
+  const dayMinutes = 14 * 60;
+  const interval = Math.floor(dayMinutes / (meals - 1));
+  const safeWeight = isNaN(weight) ? 70 : weight;
 
-  const water = adjust(p.baseWater, waterSens).toFixed(1);
-  const salt = Math.round(adjust(p.baseSalt, saltSens));
+  plan.forEach(p => {
+    const protein = Math.round((p.calories * proteinRate) / 4);
+    const fat = Math.round((p.calories * fatRate) / 9);
+    const carb = Math.round((p.calories * carbRate) / 4);
+    const pMeal = Math.round(protein / meals);
+    const fMeal = Math.round(fat / meals);
+    const cMeal = Math.round(carb / meals);
 
-  let time = new Date(0, 0, 0, wakeH, wakeM);
-  let rows = "";
+    const water = adjust(p.baseWater, waterSens).toFixed(1);
+    const salt = Math.round(adjust(p.baseSalt, saltSens));
 
-  for (let i = 0; i < meals; i++) {
-    const t = time.toTimeString().slice(0, 5);
-    rows += `<tr><td>${t}</td><td>食事${i + 1}</td><td>${pMeal}g</td><td>${fMeal}g</td><td>${cMeal}g</td></tr>`;
-    time.setMinutes(time.getMinutes() + interval);
-  
+    let time = new Date(0, 0, 0, wakeH, wakeM);
+    let rows = "";
 
-if (p.day === days) {
-  const pumpCarb = Math.round(safeWeight * 0.5);
-  const caffeine = Math.min(Math.round(safeWeight * 3), 400);
-  const pumpTime = new Date(time.getTime() - 30 * 60000);
-  const stimTime = new Date(time.getTime() - 15 * 60000);
+    for (let i = 0; i < meals; i++) {
+      const t = time.toTimeString().slice(0, 5);
+      rows += `<tr><td>${t}</td><td>食事${i + 1}</td><td>${pMeal}g</td><td>${fMeal}g</td><td>${cMeal}g</td></tr>`;
+      time.setMinutes(time.getMinutes() + interval);
+    }
 
-  rows += `<tr><td>${pumpTime.toTimeString().slice(0,5)}</td><td>パンプ30分前（炭水化物）</td><td>-</td><td>-</td><td>${pumpCarb}g</td></tr>`;
-  rows += `<tr><td>${stimTime.toTimeString().slice(0,5)}</td><td>パンプ15分前（カフェイン）</td><td>-</td><td>-</td><td>${caffeine}mg</td></tr>`;
-  rows += `<tr><td>${time.toTimeString().slice(0,5)}</td><td>パンプアップ</td><td>-</td><td>-</td><td>-</td></tr>`;
-}
+    if (p.day === days) {
+      const pumpCarb = Math.round(safeWeight * 0.5);
+      const caffeine = Math.min(Math.round(safeWeight * 3), 400);
+      const pumpTime = new Date(time.getTime() - 30 * 60000);
+      const stimTime = new Date(time.getTime() - 15 * 60000);
 
-  output.innerHTML += `
-    <div class="day-block">
-      <h3>Day ${p.day}（${p.calories} kcal / 水分 ${water}L / 塩分 ${salt}g）</h3>
-      <table>
-        <thead><tr><th>時間</th><th>内容</th><th>P</th><th>F</th><th>C</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  `;
-});
+      rows += `<tr><td>${pumpTime.toTimeString().slice(0,5)}</td><td>パンプ30分前（炭水化物）</td><td>-</td><td>-</td><td>${pumpCarb}g</td></tr>`;
+      rows += `<tr><td>${stimTime.toTimeString().slice(0,5)}</td><td>パンプ15分前（カフェイン）</td><td>-</td><td>-</td><td>${caffeine}mg</td></tr>`;
+      rows += `<tr><td>${time.toTimeString().slice(0,5)}</td><td>パンプアップ</td><td>-</td><td>-</td><td>-</td></tr>`;
+    }
 
+    output.innerHTML += `
+      <div class="day-block">
+        <h3>Day ${p.day}（${p.calories} kcal / 水分 ${water}L / 塩分 ${salt}g）</h3>
+        <table>
+          <thead><tr><th>時間</th><th>内容</th><th>P</th><th>F</th><th>C</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  });
 }
 </script>
 </body>
