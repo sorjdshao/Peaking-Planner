@@ -30,7 +30,11 @@ h2 { color: #333; margin-top: 40px; }
   h1 { font-size: 1.5em; }
 }
 </style>
-</head>
+<style>
+.input-error {
+  border: 2px solid red !important;
+}
+</style></head>
 <body>
 <section id="peakDurationWrapper">
 <h2>ピーキング期間の設定</h2>
@@ -117,33 +121,47 @@ h2 { color: #333; margin-top: 40px; }
 </div>
 </div>
 <script>
+
 function generateMealPlan() {
   const weight = parseFloat(document.getElementById("weight").value);
-  const tdee = parseFloat(document.getElementById("tdee").value);
-  const proteinField = document.getElementById("protein");
-  const fatField = document.getElementById("fat");
-  const carbField = document.getElementById("carb");
-
-  if (tdee && !isNaN(tdee)) {
-    proteinField.value = Math.round(tdee * 0.3 / 4);
-    fatField.value = Math.round(tdee * 0.2 / 9);
-    carbField.value = Math.round(tdee * 0.5 / 4);
-  }
-
-  const protein = parseInt(proteinField.value);
-  const fat = parseInt(fatField.value);
-  const carb = parseInt(carbField.value);
+  const protein = parseInt(document.getElementById("protein").value);
+  const fat = parseInt(document.getElementById("fat").value);
+  const carb = parseInt(document.getElementById("carb").value);
   const meals = parseInt(document.getElementById("mealCount").value);
   const wake = document.getElementById("wakeTime").value;
   const pump = document.getElementById("pumpTime").value;
   const stage = document.getElementById("stageTime").value;
 
-  if (!weight || !protein || !fat || !carb || !wake || !stage || isNaN(meals)) {
-    document.getElementById("mealPlanError").innerText = "必要な入力項目が不足しています。";
-    document.getElementById("mealPlanTable").querySelector("tbody").innerHTML =
-      "<tr><td colspan='5'>必要な項目がすべて入力されているか確認してください。</td></tr>";
+  const missing = [];
+  if (!weight) missing.push("体重");
+  if (!protein) missing.push("タンパク質（P）");
+  if (!fat) missing.push("脂質（F）");
+  if (!carb) missing.push("炭水化物（C）");
+  if (!wake) missing.push("起床時間");
+  if (!stage) missing.push("ステージ時間");
+  if (isNaN(meals)) missing.push("食事回数");
+
+  if (missing.length > 0) {
+    document.getElementById("mealPlanError").innerText = "以下の項目を入力してください：" + missing.join("、");
+    
+  // Clear previous highlights
+  ["weight", "protein", "fat", "carb", "wakeTime", "stageTime", "mealCount"].forEach(id => {
+    document.getElementById(id)?.classList.remove("input-error");
+  });
+
+  if (!weight) document.getElementById("weight")?.classList.add("input-error");
+  if (!protein) document.getElementById("protein")?.classList.add("input-error");
+  if (!fat) document.getElementById("fat")?.classList.add("input-error");
+  if (!carb) document.getElementById("carb")?.classList.add("input-error");
+  if (!wake) document.getElementById("wakeTime")?.classList.add("input-error");
+  if (!stage) document.getElementById("stageTime")?.classList.add("input-error");
+  if (isNaN(meals)) document.getElementById("mealCount")?.classList.add("input-error");
+
+    document.getElementById("mealPlanTable").querySelector("tbody").innerHTML = "";
     return;
   }
+
+  document.getElementById("mealPlanError").innerText = "";
 
   const [startH, startM] = wake.split(":").map(Number);
   const [stageH, stageM] = stage.split(":").map(Number);
@@ -185,40 +203,6 @@ function generateMealPlan() {
   tbody.innerHTML += `<tr><td>${pump15.toTimeString().slice(0, 5)}</td><td>パンプ15分前（カフェイン${caffeineDose}mg、水）</td><td>-</td><td>-</td><td>-</td></tr>`;
   tbody.innerHTML += `<tr><td>${pumpTime.toTimeString().slice(0, 5)}</td><td>パンプアップ開始（ステージ約60分前）</td><td>-</td><td>-</td><td>-</td></tr>`;
   tbody.innerHTML += `<tr><td>${stage}</td><td>ステージ</td><td>-</td><td>-</td><td>-</td></tr>`;
-}
-
-function renderPeakDays() {
-  const days = parseInt(document.getElementById("peakDays").value);
-  const container = document.getElementById("multiDaySchedules");
-  container.innerHTML = "";
-  const phaseLabels = {
-    1: "枯渇期",
-    2: "枯渇期",
-    3: "ローディング",
-    4: "ローディング",
-    5: "大会前日",
-    6: "大会当日",
-    7: "大会当日"
-  };
-
-  for (let i = 1; i <= days; i++) {
-    const dayDiv = document.createElement("div");
-    dayDiv.style.border = "1px solid #ccc";
-    dayDiv.style.marginBottom = "1em";
-    dayDiv.style.padding = "1em";
-    const label = phaseLabels[i] || "調整日";
-    dayDiv.innerHTML = `<h3>Day ${i}（${label}）</h3><p>この日のスケジュールはここに表示されます（今後実装）</p>`;
-    container.appendChild(dayDiv);
-  }
-}
-
-function updatePFCfromTDEE() {
-  const tdee = parseFloat(document.getElementById("tdee").value);
-  if (!isNaN(tdee)) {
-    document.getElementById("protein").value = Math.round(tdee * 0.3 / 4);
-    document.getElementById("fat").value = Math.round(tdee * 0.2 / 9);
-    document.getElementById("carb").value = Math.round(tdee * 0.5 / 4);
-  }
 }
 </script></body>
 </html>
