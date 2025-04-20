@@ -182,7 +182,7 @@ plan.forEach(p => {
     const t = time.toTimeString().slice(0, 5);
     rows += `<tr><td>${t}</td><td>食事${i + 1}</td><td>${pMeal}g</td><td>${fMeal}g</td><td>${cMeal}g</td></tr>`;
     time.setMinutes(time.getMinutes() + interval);
-  }
+  
 
 if (p.day === days) {
   const pumpCarb = Math.round(safeWeight * 0.5);
