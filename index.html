@@ -131,7 +131,7 @@ const fatRate = 1 - proteinRate - carbRate;
 const stageInput = document.getElementById("stageTime");
 const stage = stageInput.value;
 let stageH = null, stageM = null;
-if (stage) {
+if (stage && stage.includes(":")) {
   [stageH, stageM] = stage.split(":").map(Number);
 }
 
