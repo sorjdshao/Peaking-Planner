@@ -184,6 +184,7 @@ plan.forEach(p => {
     time.setMinutes(time.getMinutes() + interval);
   }
 
+if (p.day === days) {
   const pumpCarb = Math.round(safeWeight * 0.5);
   const caffeine = Math.min(Math.round(safeWeight * 3), 400);
   const pumpTime = new Date(time.getTime() - 30 * 60000);
@@ -192,6 +193,7 @@ plan.forEach(p => {
   rows += `<tr><td>${pumpTime.toTimeString().slice(0,5)}</td><td>パンプ30分前（炭水化物）</td><td>-</td><td>-</td><td>${pumpCarb}g</td></tr>`;
   rows += `<tr><td>${stimTime.toTimeString().slice(0,5)}</td><td>パンプ15分前（カフェイン）</td><td>-</td><td>-</td><td>${caffeine}mg</td></tr>`;
   rows += `<tr><td>${time.toTimeString().slice(0,5)}</td><td>パンプアップ</td><td>-</td><td>-</td><td>-</td></tr>`;
+｝
 
   output.innerHTML += `
     <div class="day-block">
