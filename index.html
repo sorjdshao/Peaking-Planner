@@ -156,7 +156,7 @@ if (!wake) {
   errorMessages.push("起床時間を入力してください。");
 }
 
-if (!stage) {
+if (!stage || !stage.includes(":")) {
   stageInput.classList.add("input-error");
   errorMessages.push("ステージ時間を入力してください。");
 }
