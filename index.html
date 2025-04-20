@@ -1,117 +1,91 @@
+<!-- Peaking Strategy UI（改善反映済み） -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>大会当日スケジューラー（ステージ対応）</title>
+  <meta charset="utf-8">
+  <title>ピーキング戦略（前日まで）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: sans-serif; background: #f5f5f5; padding: 20px; }
-    .container { background: white; padding: 20px; border-radius: 10px; max-width: 800px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    label, select, input { display: block; width: 100%; margin-top: 10px; font-size: 1em; }
-    #stage2TimeBlock { display: none; }
-    button { margin-top: 20px; padding: 10px; width: 100%; background: #4CAF50; color: white; font-weight: bold; border: none; border-radius: 5px; }
+    body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
+    .container { background: #fff; padding: 20px; border-radius: 10px; max-width: 900px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, select { width: 100%; padding: 8px; margin-top: 5px; }
+    button { margin-top: 20px; padding: 10px; font-size: 1em; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
     th { background-color: #eee; }
+    .day-block { margin-bottom: 40px; }
+    @media print {
+      button { display: none; }
+      body { -webkit-print-color-adjust: exact; }
+      table { page-break-inside: avoid; }
+    }
   </style>
-  <script>
-    function toggleStage2() {
-      const stageCount = document.getElementById("stageCount").value;
-      const stage2Block = document.getElementById("stage2TimeBlock");
-      stage2Block.style.display = (stageCount === "2") ? "block" : "none";
-    }
-
-    function generateSchedule() {
-      const wakeTime = document.getElementById("wakeTime").value;
-      const stageCount = document.getElementById("stageCount").value;
-      const stageTime1 = document.getElementById("stageTime1").value;
-      const stageTime2 = stageCount === "2" ? document.getElementById("stageTime2").value : null;
-      const mealCount = parseInt(document.getElementById("mealCount").value);
-      const leanMass = parseFloat(document.getElementById("leanMass").value);
-      const totalCalories = parseFloat(document.getElementById("totalCalories").value);
-
-      if (!wakeTime || !stageTime1 || !leanMass || !totalCalories) {
-        alert("すべての必須項目を入力してください。");
-        return;
-      }
-
-      const wake = new Date("1970-01-01T" + wakeTime + ":00");
-      const stage1 = new Date("1970-01-01T" + stageTime1 + ":00");
-
-      const totalProtein = Math.round(leanMass * 2.3);
-      const totalFat = 30;
-      const pKcal = totalProtein * 4;
-      const fKcal = totalFat * 9;
-      const cKcal = totalCalories - pKcal - fKcal;
-      const totalCarb = Math.round(cKcal / 4);
-
-      const pMeal = Math.floor(totalProtein / mealCount);
-      const fMeal = Math.floor(totalFat / mealCount);
-
-      let cDistribution = [];
-      const base = totalCarb / mealCount;
-      for (let i = 0; i < mealCount; i++) {
-        const bonus = i >= mealCount - 2 ? 10 : 0;
-        cDistribution.push(Math.round(base + bonus));
-      }
-
-      const intervalMinutes = Math.floor((stage1 - wake) / (mealCount - 1) / 60000);
-      let time = new Date(wake);
-
-      let scheduleHtml = "<table><thead><tr><th>時間</th><th>内容</th><th>P</th><th>F</th><th>C</th><th>備考</th></tr></thead><tbody>";
-
-      for (let i = 0; i < mealCount; i++) {
-        const hh = time.getHours().toString().padStart(2, "0");
-        const mm = time.getMinutes().toString().padStart(2, "0");
-        const timeStr = hh + ":" + mm;
-        const note = (i === mealCount - 1) ? "ステージ前チャージ" : "";
-        scheduleHtml += `<tr><td>${timeStr}</td><td>食事${i + 1}</td><td>${pMeal}g</td><td>${fMeal}g</td><td>${cDistribution[i]}g</td><td>${note}</td></tr>`;
-        time.setMinutes(time.getMinutes() + intervalMinutes);
-      }
-
-      scheduleHtml += "</tbody></table>";
-      document.getElementById("output").innerHTML = scheduleHtml;
-    }
-  </script>
 </head>
 <body>
-  <div class="container">
-    <h1>大会当日スケジューラー</h1>
+<div class="container">
+  <h1>ピーキング戦略（前日まで）</h1>
 
-    <label for="wakeTime">起床時間：</label>
-    <input type="time" id="wakeTime" />
+  <label>体重（kg）</label>
+  <input id="weight" type="number" placeholder="例：70" />
 
-    <label for="stageCount">ステージ数：</label>
-    <select id="stageCount" onchange="toggleStage2()">
-      <option value="1" selected>1ステージ</option>
-      <option value="2">2ステージ</option>
-    </select>
+  <label>体脂肪率（％）</label>
+  <input id="bodyfat" type="number" placeholder="例：15" />
 
-    <label for="stageTime1">第1ステージ開始時間：</label>
-    <input type="time" id="stageTime1" />
+  <label>TDEE（1日の消費カロリー）</label>
+  <input id="tdee" type="number" placeholder="例：2500" />
 
-    <div id="stage2TimeBlock">
-      <label for="stageTime2">第2ステージ開始時間：</label>
-      <input type="time" id="stageTime2" />
-    </div>
+  <label>ピーキング期間</label>
+  <select id="days">
+    <option value="3">3日間</option>
+    <option value="5">5日間</option>
+    <option value="7" selected>7日間</option>
+  </select>
 
-    <label for="mealCount">食事回数：</label>
-    <select id="mealCount">
-      <option value="3">3回</option>
-      <option value="4">4回</option>
-      <option value="5" selected>5回</option>
-      <option value="6">6回</option>
-    </select>
+  <label>食事回数</label>
+  <select id="mealCount">
+    <option value="3">3回</option>
+    <option value="4">4回</option>
+    <option value="5" selected>5回</option>
+    <option value="6">6回</option>
+  </select>
 
-    <label for="leanMass">除脂肪体重（kg）：</label>
-    <input type="number" id="leanMass" placeholder="例：60" />
+  <label>起床時間</label>
+  <input id="wakeTime" type="time" />
 
-    <label for="totalCalories">総摂取カロリー（当日）：</label>
-    <input type="number" id="totalCalories" placeholder="例：2000" />
+  <label>水分感受性</label>
+  <select id="waterSensitivity">
+    <option value="low">低</option>
+    <option value="medium" selected>中</option>
+    <option value="high">高</option>
+  </select>
 
-    <button onclick="generateSchedule()">スケジュールを生成</button>
+  <label>塩分感受性</label>
+  <select id="saltSensitivity">
+    <option value="low">低</option>
+    <option value="medium" selected>中</option>
+    <option value="high">高</option>
+  </select>
 
-    <div id="output" style="margin-top: 30px;"></div>
-  </div>
+  <label><input type="checkbox" id="useWaterCut" checked> 水抜きを行う</label>
+  <label><input type="checkbox" id="useSaltControl" checked> 塩分調整を行う</label>
+
+  <label>カロリー戦略（ディプリート時）</label>
+  <select id="calorieStrategy">
+    <option value="adjust" selected>カロリーを減らす</option>
+    <option value="maintain_p">カロリー維持（Pで補う）</option>
+    <option value="maintain_f">カロリー維持（Fで補う）</option>
+    <option value="maintain_p_strong">カロリー維持（P多め）</option>
+    <option value="maintain_f_strong">カロリー維持（F多め）</option>
+  </select>
+
+  <button onclick="displayFullSchedule()">全日スケジュールを表示</button>
+  <div id="output"></div>
+</div>
+
+<script>
+// 改善版JSロジック：ここに前回出力した `displayFullSchedule()` 関数を貼り付けてください
+</script>
+
 </body>
 </html>
