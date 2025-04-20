@@ -31,7 +31,7 @@
   <label>体重（kg）</label>
   <input id="weight" type="number" placeholder="例：70" />
 
-  <label>体脂肪率（％</label>
+  <label>体脂肪率（％）</label>
   <input id="bodyfat" type="number" placeholder="例：15" />
 
   <label>TDEE（1日の消費カロリー）</label>
@@ -75,6 +75,10 @@
     <option value="medium" selected>中</option>
     <option value="high">高</option>
   </select>
+
+  <label><input type="checkbox" id="useWaterCut" checked> 水抜きを行う</label>
+  <label><input type="checkbox" id="useSaltControl" checked> 塩分調整を行う</label>
+  <label><input type="checkbox" id="useCarbDeplete" checked> カーボディプリートを行う</label>
 
   <button onclick="displayFullSchedule()">全日スケジュールを表示</button>
 
@@ -130,13 +134,15 @@ function displayFullSchedule() {
     errorOutput.innerHTML = "";
   }
 
-  // ▼ 体脂肪率ベースでPFC決定
+  const useWaterCut = document.getElementById("useWaterCut").checked;
+  const useSaltControl = document.getElementById("useSaltControl").checked;
+  const useCarbDeplete = document.getElementById("useCarbDeplete").checked;
+
   const carbSens = document.getElementById("carbSensitivity").value;
-  let proteinRate = 0.30 + (bodyfat / 100) * 0.15;  // 上限0.45
-  let fatRate = 0.25 - (bodyfat / 100) * 0.05;      // 下限0.20
+  let proteinRate = 0.30 + (bodyfat / 100) * 0.15;
+  let fatRate = 0.25 - (bodyfat / 100) * 0.05;
   let carbRate = 1 - proteinRate - fatRate;
 
-  // 感受性調整
   const carbAdjust = { low: -0.05, medium: 0.0, high: 0.05 }[carbSens];
   carbRate = Math.min(Math.max(carbRate + carbAdjust, 0.3), 0.6);
   proteinRate = Math.min(Math.max(proteinRate, 0.30), 0.50);
@@ -148,17 +154,19 @@ function displayFullSchedule() {
   const [wakeH, wakeM] = wake.split(":").map(Number);
   const output = document.getElementById("output");
 
-  const plan = {
+  const defaultTdeeRatios = {
+    3: [1.0, 1.0, 1.0],
+    5: [1.0, 1.0, 1.0, 1.0, 1.0],
+    7: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  };
+
+  const depleteTdeeRatios = {
     3: [0.8, 0.6, 1.2],
     5: [0.8, 0.7, 0.6, 1.0, 1.2],
     7: [0.9, 0.8, 0.7, 0.6, 1.0, 1.1, 1.2]
-  }[days].map((rate, i) => ({
-    day: i + 1,
-    tdeeRatio: rate,
-    calories: Math.round(rate * tdee),
-    baseWater: (6 - i * 0.5),
-    baseSalt: Math.max(16 - i * 2, 3)
-  }));
+  };
+
+  const ratios = useCarbDeplete ? depleteTdeeRatios[days] : defaultTdeeRatios[days];
 
   const adjust = (base, sens) => base * ({ low: 1.2, medium: 1.0, high: 0.8 }[sens]);
 
@@ -166,28 +174,37 @@ function displayFullSchedule() {
   const dayMinutes = 14 * 60;
   const interval = Math.floor(dayMinutes / (meals - 1));
 
-  plan.forEach(p => {
-    const protein = Math.round((p.calories * proteinRate) / 4);
-    const fat = Math.round((p.calories * fatRate) / 9);
-    const carb = Math.round((p.calories * carbRate) / 4);
+  ratios.forEach((rate, i) => {
+    const calories = Math.round(rate * tdee);
+
+    const protein = Math.round(leanWeight * 2.2);
+    const proteinKcal = protein * 4;
+    const remainingKcal = calories - proteinKcal;
+    const fat = Math.round((remainingKcal * fatRate) / 9);
+    const carb = Math.round((remainingKcal * carbRate) / 4);
+
     const pMeal = Math.round(protein / meals);
     const fMeal = Math.round(fat / meals);
     const cMeal = Math.round(carb / meals);
-    const water = adjust(p.baseWater, waterSens).toFixed(1);
-    const salt = Math.round(adjust(p.baseSalt, saltSens));
+
+    const baseWater = useWaterCut ? Math.max(weight * 0.08 - i * 0.5, 2.0) : 4;
+    const baseSalt = useSaltControl ? Math.max(weight * 0.2 - i * 2, 3) : 8;
+
+    const water = adjust(baseWater, waterSens).toFixed(1);
+    const salt = Math.round(adjust(baseSalt, saltSens));
 
     let time = new Date(0, 0, 0, wakeH, wakeM);
     let rows = "";
 
-    for (let i = 0; i < meals; i++) {
+    for (let m = 0; m < meals; m++) {
       const t = time.toTimeString().slice(0, 5);
-      rows += `<tr><td>${t}</td><td>食事${i + 1}</td><td>${pMeal}g</td><td>${fMeal}g</td><td>${cMeal}g</td></tr>`;
+      rows += `<tr><td>${t}</td><td>食事${m + 1}</td><td>${pMeal}g</td><td>${fMeal}g</td><td>${cMeal}g</td></tr>`;
       time.setMinutes(time.getMinutes() + interval);
     }
 
     output.innerHTML += `
       <div class="day-block">
-        <h3>Day ${p.day}（${p.calories} kcal / 水分 ${water}L / 塩分 ${salt}g）</h3>
+        <h3>Day ${i + 1}（${calories} kcal / 水分 ${water}L / 塩分 ${salt}g）</h3>
         <table>
           <thead><tr><th>時間</th><th>内容</th><th>P</th><th>F</th><th>C</th></tr></thead>
           <tbody>${rows}</tbody>
@@ -197,3 +214,5 @@ function displayFullSchedule() {
   });
 }
 </script>
+</body>
+</html>
