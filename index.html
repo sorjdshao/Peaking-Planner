@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <title>ピーキング戦略・最終版</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <style>
     body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
     .container { background: #fff; padding: 20px; border-radius: 10px; max-width: 900px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -56,8 +55,8 @@
   <label>起床時間</label>
   <input id="wakeTime" type="time" />
 
-<label>ステージ時間（最終日のパンプアップ時間の参考）</label>
-<input id="stageTime" type="time" />
+  <label>ステージ時間（最終日のパンプアップ時間の参考）</label>
+  <input id="stageTime" type="time" />
 
   <label>水分感受性</label>
   <select id="waterSensitivity">
@@ -95,71 +94,62 @@ function displayFullSchedule() {
   const errorOutput = document.getElementById("inputError");
 
   const weight = parseFloat(weightInput.value);
-const bodyfat = parseFloat(document.getElementById("bodyfat").value);  // ← 追加
-const leanWeight = weight * (1 - bodyfat / 100); // ← 除脂肪体重を計算
-  
+  const bodyfat = parseFloat(document.getElementById("bodyfat").value);
+  const leanWeight = weight * (1 - bodyfat / 100);
+
   let baseProtein, baseFat, baseCarb;
 
-if (bodyfat < 10) {
-  baseProtein = 0.30;
-  baseFat = 0.25;
-  baseCarb = 0.45;
-} else if (bodyfat < 20) {
-  baseProtein = 0.35;
-  baseFat = 0.20;
-  baseCarb = 0.45;
-} else if (bodyfat < 30) {
-  baseProtein = 0.40;
-  baseFat = 0.20;
-  baseCarb = 0.40;
-} else {
-  baseProtein = 0.45;
-  baseFat = 0.20;
-  baseCarb = 0.35;
-}
-  
+  if (bodyfat < 10) {
+    baseProtein = 0.30; baseFat = 0.25; baseCarb = 0.45;
+  } else if (bodyfat < 20) {
+    baseProtein = 0.35; baseFat = 0.20; baseCarb = 0.45;
+  } else if (bodyfat < 30) {
+    baseProtein = 0.40; baseFat = 0.20; baseCarb = 0.40;
+  } else {
+    baseProtein = 0.45; baseFat = 0.20; baseCarb = 0.35;
+  }
+
   const carbSens = document.getElementById("carbSensitivity").value;
-const carbAdjust = { low: -0.05, medium: 0.0, high: 0.05 }[carbSens];
-const carbRate = Math.min(Math.max(baseCarb + carbAdjust, 0.3), 0.6);
-const proteinRate = baseProtein;
-const fatRate = 1 - proteinRate - carbRate;
-  
+  const carbAdjust = { low: -0.05, medium: 0.0, high: 0.05 }[carbSens];
+  const carbRate = Math.min(Math.max(baseCarb + carbAdjust, 0.3), 0.6);
+  const proteinRate = baseProtein;
+  const fatRate = 1 - proteinRate - carbRate;
+
   const tdee = parseFloat(tdeeInput.value);
   const meals = parseInt(mealInput.value);
   const wake = wakeInput.value;
 
-const stageInput = document.getElementById("stageTime");
-const stage = stageInput.value;
-let stageH = null, stageM = null;
-if (stage && stage.includes(":")) {
-  [stageH, stageM] = stage.split(":").map(Number);
-}
+  const stageInput = document.getElementById("stageTime");
+  const stage = stageInput.value;
+  let stageH = null, stageM = null;
+  if (stage && stage.includes(":")) {
+    [stageH, stageM] = stage.split(":").map(Number);
+  }
 
-let errorMessages = [];
-const inputsToValidate = [weightInput, tdeeInput, mealInput, wakeInput, stageInput];
-inputsToValidate.forEach(el => el.classList.remove("input-error"));
+  let errorMessages = [];
+  const inputsToValidate = [weightInput, tdeeInput, mealInput, wakeInput, stageInput];
+  inputsToValidate.forEach(el => el.classList.remove("input-error"));
 
-if (isNaN(weight) || weight < 30 || weight > 200) {
-  weightInput.classList.add("input-error");
-  errorMessages.push("体重（30〜200kg）を入力してください。");
-}
-if (isNaN(tdee) || tdee < 1000 || tdee > 6000) {
-  tdeeInput.classList.add("input-error");
-  errorMessages.push("TDEE（1000〜6000）を入力してください。");
-}
-if (isNaN(meals) || meals < 3) {
-  mealInput.classList.add("input-error");
-  errorMessages.push("食事回数は3以上で入力してください。");
-}
-if (!wake) {
-  wakeInput.classList.add("input-error");
-  errorMessages.push("起床時間を入力してください。");
-}
-
-if (!stage || !stage.includes(":")) {
-  stageInput.classList.add("input-error");
-  errorMessages.push("ステージ時間を入力してください。");
-}
+  if (isNaN(weight) || weight < 30 || weight > 200) {
+    weightInput.classList.add("input-error");
+    errorMessages.push("体重（30〜200kg）を入力してください。");
+  }
+  if (isNaN(tdee) || tdee < 1000 || tdee > 6000) {
+    tdeeInput.classList.add("input-error");
+    errorMessages.push("TDEE（1000〜6000）を入力してください。");
+  }
+  if (isNaN(meals) || meals < 3) {
+    mealInput.classList.add("input-error");
+    errorMessages.push("食事回数は3以上で入力してください。");
+  }
+  if (!wake) {
+    wakeInput.classList.add("input-error");
+    errorMessages.push("起床時間を入力してください。");
+  }
+  if (!stage || !stage.includes(":")) {
+    stageInput.classList.add("input-error");
+    errorMessages.push("ステージ時間を入力してください。");
+  }
 
   if (errorMessages.length > 0) {
     errorOutput.innerHTML = errorMessages.join("<br>");
@@ -171,7 +161,6 @@ if (!stage || !stage.includes(":")) {
   const days = parseInt(document.getElementById("days").value);
   const waterSens = document.getElementById("waterSensitivity").value;
   const saltSens = document.getElementById("saltSensitivity").value;
-  const carbSens = document.getElementById("carbSensitivity").value;
   const [wakeH, wakeM] = wake.split(":").map(Number);
   const output = document.getElementById("output");
 
@@ -192,7 +181,6 @@ if (!stage || !stage.includes(":")) {
   output.innerHTML = "";
   const dayMinutes = 14 * 60;
   const interval = Math.floor(dayMinutes / (meals - 1));
-  const safeWeight = isNaN(weight) ? 70 : weight;
 
   plan.forEach(p => {
     const protein = Math.round((p.calories * proteinRate) / 4);
@@ -201,7 +189,6 @@ if (!stage || !stage.includes(":")) {
     const pMeal = Math.round(protein / meals);
     const fMeal = Math.round(fat / meals);
     const cMeal = Math.round(carb / meals);
-
     const water = adjust(p.baseWater, waterSens).toFixed(1);
     const salt = Math.round(adjust(p.baseSalt, saltSens));
 
@@ -215,23 +202,18 @@ if (!stage || !stage.includes(":")) {
     }
 
     if (p.day === days) {
-  const pumpCarb = Math.round(leanWeight * 0.5);
-  const caffeine = Math.min(Math.round(leanWeight * 3), 400);
+      const pumpCarb = Math.round(leanWeight * 0.5);
+      const caffeine = Math.min(Math.round(leanWeight * 3), 400);
 
-  let stageTime;
-  if (stageH !== null && stageM !== null) {
-    stageTime = new Date(0, 0, 0, stageH, stageM);
-  } else {
-    stageTime = new Date(time.getTime());
-  }
+      const stageTime = new Date(0, 0, 0, stageH, stageM);
+      const pumpTime = new Date(stageTime.getTime() - 30 * 60000);
+      const stimTime = new Date(stageTime.getTime() - 15 * 60000);
 
-  const pumpTime = new Date(stageTime.getTime() - 30 * 60000);
-  const stimTime = new Date(stageTime.getTime() - 15 * 60000);
+      rows += `<tr><td>${pumpTime.toTimeString().slice(0,5)}</td><td>パンプ30分前（炭水化物）</td><td>-</td><td>-</td><td>${pumpCarb}g</td></tr>`;
+      rows += `<tr><td>${stimTime.toTimeString().slice(0,5)}</td><td>パンプ15分前（カフェイン）</td><td>-</td><td>-</td><td>${caffeine}mg</td></tr>`;
+      rows += `<tr><td>${stageTime.toTimeString().slice(0,5)}</td><td>パンプアップ（ステージ）</td><td>-</td><td>-</td><td>-</td></tr>`;
+    }
 
-  rows += `<tr><td>${pumpTime.toTimeString().slice(0,5)}</td><td>パンプ30分前（炭水化物）</td><td>-</td><td>-</td><td>${pumpCarb}g</td></tr>`;
-  rows += `<tr><td>${stimTime.toTimeString().slice(0,5)}</td><td>パンプ15分前（カフェイン）</td><td>-</td><td>-</td><td>${caffeine}mg</td></tr>`;
-  rows += `<tr><td>${stageTime.toTimeString().slice(0,5)}</td><td>パンプアップ（ステージ）</td><td>-</td><td>-</td><td>-</td></tr>`;
-}
     output.innerHTML += `
       <div class="day-block">
         <h3>Day ${p.day}（${p.calories} kcal / 水分 ${water}L / 塩分 ${salt}g）</h3>
