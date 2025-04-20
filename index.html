@@ -84,7 +84,111 @@
 </div>
 
 <script>
-// 改善版JSロジック：ここに前回出力した `displayFullSchedule()` 関数を貼り付けてください
+function displayFullSchedule() {
+  const weight = parseFloat(document.getElementById("weight").value);
+  const bodyfat = parseFloat(document.getElementById("bodyfat").value);
+  const leanWeight = weight * (1 - bodyfat / 100);
+  const tdee = parseFloat(document.getElementById("tdee").value);
+  const meals = parseInt(document.getElementById("mealCount").value);
+  const wake = document.getElementById("wakeTime").value;
+  const [wakeH, wakeM] = wake.split(":").map(Number);
+  const days = parseInt(document.getElementById("days").value);
+  const waterSens = document.getElementById("waterSensitivity").value;
+  const saltSens = document.getElementById("saltSensitivity").value;
+  const useWaterCut = document.getElementById("useWaterCut").checked;
+  const useSaltControl = document.getElementById("useSaltControl").checked;
+  const calorieStrategy = document.getElementById("calorieStrategy").value;
+  const output = document.getElementById("output");
+
+  const depleteTdeeRatios = {
+    3: [0.8, 0.6, 1.2],
+    5: [0.8, 0.7, 0.6, 1.0, 1.2],
+    7: [0.9, 0.8, 0.7, 0.6, 1.0, 1.1, 1.2]
+  };
+
+  const defaultTdeeRatios = {
+    3: [1.0, 1.0, 1.0],
+    5: [1.0, 1.0, 1.0, 1.0, 1.0],
+    7: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+  };
+
+  const isDeplete = true; // 前日まで前提で固定
+  const ratios = (calorieStrategy === "adjust") ? depleteTdeeRatios[days] : defaultTdeeRatios[days];
+
+  const adjust = (base, sens) => {
+    const factorMap = { low: 1.2, medium: 1.0, high: 0.8 };
+    return Math.max(base * (factorMap[sens] || 1.0), 0);
+  };
+
+  output.innerHTML = "";
+  const interval = Math.floor((14 * 60) / (meals - 1));
+
+  ratios.forEach((rate, i) => {
+    let calories = Math.round(rate * tdee);
+
+    const baseProtein = Math.round(leanWeight * 2.3);
+    const proteinKcal = baseProtein * 4;
+    const fatMin = 30;
+    const fatKcal = fatMin * 9;
+    const remainingKcal = calories - proteinKcal - fatKcal;
+
+    let extraProtein = 0;
+    let extraFat = 0;
+
+    if (calorieStrategy.startsWith("maintain")) {
+      switch (calorieStrategy) {
+        case "maintain_p":
+          extraProtein = Math.round(remainingKcal / 4);
+          break;
+        case "maintain_f":
+          extraFat = Math.round(remainingKcal / 9);
+          break;
+        case "maintain_p_strong":
+          extraProtein = Math.round((remainingKcal * 0.7) / 4);
+          extraFat = Math.round((remainingKcal * 0.3) / 9);
+          break;
+        case "maintain_f_strong":
+          extraProtein = Math.round((remainingKcal * 0.3) / 4);
+          extraFat = Math.round((remainingKcal * 0.7) / 9);
+          break;
+      }
+    }
+
+    const totalProtein = baseProtein + extraProtein;
+    const totalFat = fatMin + extraFat;
+    const pMeal = Math.round(totalProtein / meals);
+    const fMeal = Math.round(totalFat / meals);
+
+    const cTotal = Math.round((calories - (totalProtein * 4 + totalFat * 9)) / 4);
+    const cPerMealWeights = Array.from({ length: meals }, (_, m) => m < meals / 2 ? 0.8 : 1.2);
+    const cWeightSum = cPerMealWeights.reduce((a, b) => a + b, 0);
+    const cMealArray = cPerMealWeights.map(w => Math.round(cTotal * w / cWeightSum));
+
+    const baseWater = useWaterCut ? Math.max(weight * 0.08 - i * 0.5, 1.5) : 4;
+    const baseSalt = useSaltControl ? Math.max(weight * 0.2 - i * 2, 2) : 8;
+    const water = adjust(baseWater, waterSens).toFixed(1);
+    const salt = Math.round(adjust(baseSalt, saltSens));
+
+    let time = new Date(0, 0, 0, wakeH, wakeM);
+    let rows = "";
+
+    for (let m = 0; m < meals; m++) {
+      const t = time.toTimeString().slice(0, 5);
+      rows += `<tr><td>${t}</td><td>食事${m + 1}</td><td>${pMeal}g</td><td>${fMeal}g</td><td>${cMealArray[m]}g</td></tr>`;
+      time.setMinutes(time.getMinutes() + interval);
+    }
+
+    output.innerHTML += `
+      <div class="day-block">
+        <h3>Day ${i + 1}（${calories} kcal / 水分 ${water}L / 塩分 ${salt}g）</h3>
+        <table>
+          <thead><tr><th>時間</th><th>内容</th><th>P</th><th>F</th><th>C</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  });
+}
 </script>
 
 </body>
