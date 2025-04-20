@@ -56,6 +56,9 @@
   <label>起床時間</label>
   <input id="wakeTime" type="time" />
 
+<label>ステージ時間（最終日のパンプアップ時間の参考）</label>
+<input id="stageTime" type="time" />
+
   <label>水分感受性</label>
   <select id="waterSensitivity">
     <option value="low">低</option>
@@ -124,6 +127,13 @@ const fatRate = 1 - proteinRate - carbRate;
   const tdee = parseFloat(tdeeInput.value);
   const meals = parseInt(mealInput.value);
   const wake = wakeInput.value;
+
+const stageInput = document.getElementById("stageTime");
+const stage = stageInput.value;
+let stageH = null, stageM = null;
+if (stage) {
+  [stageH, stageM] = stage.split(":").map(Number);
+}
 
   let errorMessages = [];
   [weightInput, tdeeInput, mealInput, wakeInput].forEach(el => el.classList.remove("input-error"));
@@ -199,14 +209,22 @@ const fatRate = 1 - proteinRate - carbRate;
     }
 
     if (p.day === days) {
-  const pumpCarb = Math.round(leanWeight * 0.5); // ← 修正！
-  const caffeine = Math.min(Math.round(leanWeight * 3), 400); // ← 修正！
-  const pumpTime = new Date(time.getTime() - 30 * 60000);
-  const stimTime = new Date(time.getTime() - 15 * 60000);
+  const pumpCarb = Math.round(leanWeight * 0.5);
+  const caffeine = Math.min(Math.round(leanWeight * 3), 400);
+
+  let stageTime;
+  if (stageH !== null && stageM !== null) {
+    stageTime = new Date(0, 0, 0, stageH, stageM);
+  } else {
+    stageTime = new Date(time.getTime());
+  }
+
+  const pumpTime = new Date(stageTime.getTime() - 30 * 60000);
+  const stimTime = new Date(stageTime.getTime() - 15 * 60000);
 
   rows += `<tr><td>${pumpTime.toTimeString().slice(0,5)}</td><td>パンプ30分前（炭水化物）</td><td>-</td><td>-</td><td>${pumpCarb}g</td></tr>`;
   rows += `<tr><td>${stimTime.toTimeString().slice(0,5)}</td><td>パンプ15分前（カフェイン）</td><td>-</td><td>-</td><td>${caffeine}mg</td></tr>`;
-  rows += `<tr><td>${time.toTimeString().slice(0,5)}</td><td>パンプアップ</td><td>-</td><td>-</td><td>-</td></tr>`;
+  rows += `<tr><td>${stageTime.toTimeString().slice(0,5)}</td><td>パンプアップ（ステージ）</td><td>-</td><td>-</td><td>-</td></tr>`;
 }
     output.innerHTML += `
       <div class="day-block">
