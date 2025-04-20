@@ -94,6 +94,33 @@ function displayFullSchedule() {
   const weight = parseFloat(weightInput.value);
 const bodyfat = parseFloat(document.getElementById("bodyfat").value);  // ← 追加
 const leanWeight = weight * (1 - bodyfat / 100); // ← 除脂肪体重を計算
+  
+  let baseProtein, baseFat, baseCarb;
+
+if (bodyfat < 10) {
+  baseProtein = 0.30;
+  baseFat = 0.25;
+  baseCarb = 0.45;
+} else if (bodyfat < 20) {
+  baseProtein = 0.35;
+  baseFat = 0.20;
+  baseCarb = 0.45;
+} else if (bodyfat < 30) {
+  baseProtein = 0.40;
+  baseFat = 0.20;
+  baseCarb = 0.40;
+} else {
+  baseProtein = 0.45;
+  baseFat = 0.20;
+  baseCarb = 0.35;
+}
+  
+  const carbSens = document.getElementById("carbSensitivity").value;
+const carbAdjust = { low: -0.05, medium: 0.0, high: 0.05 }[carbSens];
+const carbRate = Math.min(Math.max(baseCarb + carbAdjust, 0.3), 0.6);
+const proteinRate = baseProtein;
+const fatRate = 1 - proteinRate - carbRate;
+  
   const tdee = parseFloat(tdeeInput.value);
   const meals = parseInt(mealInput.value);
   const wake = wakeInput.value;
@@ -131,10 +158,6 @@ const leanWeight = weight * (1 - bodyfat / 100); // ← 除脂肪体重を計算
   const carbSens = document.getElementById("carbSensitivity").value;
   const [wakeH, wakeM] = wake.split(":").map(Number);
   const output = document.getElementById("output");
-
-  const carbRate = { low: 0.45, medium: 0.5, high: 0.55 }[carbSens];
-  const fatRate = 0.2;
-  const proteinRate = 1 - carbRate - fatRate;
 
   const plan = {
     3: [0.8, 0.6, 1.2],
