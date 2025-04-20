@@ -78,14 +78,14 @@
   <label><input type="checkbox" id="useSaltControl" checked> 塩分調整を行う</label>
   <label><input type="checkbox" id="useCarbDeplete" checked> カーボディプリートを行う</label>
 
-  <label>カーボディプリート時のカロリー戦略</label>
-  <select id="carbDepleteCalorieOption">
-    <option value="adjust" selected>カロリーも減らす</option>
-    <option value="maintain_p_strong">カロリー維持（P中心で補う）</option>
-    <option value="maintain_f_strong">カロリー維持（F中心で補う）</option>
-    <option value="maintain_p_only">カロリー維持（Pのみ）</option>
-    <option value="maintain_f_only">カロリー維持（Fのみ）</option>
-  </select>
+  <label>カロリー戦略（ディプリート時）</label>
+<select id="calorieStrategy">
+  <option value="adjust" selected>カロリーを減らす</option>
+  <option value="maintain_p">カロリー維持（Pのみで補う）</option>
+  <option value="maintain_f">カロリー維持（Fのみで補う）</option>
+  <option value="maintain_p_strong">カロリー維持（P多めで補う）</option>
+  <option value="maintain_f_strong">カロリー維持（F多めで補う）</option>
+</select>
 
   <button onclick="displayFullSchedule()">全日スケジュールを表示</button>
 
@@ -94,36 +94,13 @@
 </div>
 
 <script>
-// 保存対象のフォーム要素IDリスト
 const inputIds = [
   "weight", "bodyfat", "tdee", "mealCount", "wakeTime", "days",
   "waterSensitivity", "saltSensitivity", "carbSensitivity",
-  "useWaterCut", "useSaltControl", "useCarbDeplete", "carbDepleteCalorieOption"
+  "useWaterCut", "useSaltControl", "useCarbDeplete",
+  "carbDepleteCalorieOption", "calorieStrategy" 
 ];
 
-// ページ読み込み時にlocalStorageから入力値を復元
-window.addEventListener("DOMContentLoaded", () => {
-  inputIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const val = localStorage.getItem(id);
-    if (val !== null) {
-      el.type === "checkbox" ? el.checked = val === "true" : el.value = val;
-    }
-  });
-});
-
-// 入力値が変更された時、自動でlocalStorageに保存
-inputIds.forEach(id => {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.addEventListener("change", () => {
-    const val = el.type === "checkbox" ? el.checked : el.value;
-    localStorage.setItem(id, val);
-  });
-});
-
-// スケジュール表示ロジック
 function displayFullSchedule() {
   const weight = parseFloat(document.getElementById("weight").value);
   const bodyfat = parseFloat(document.getElementById("bodyfat").value);
@@ -140,15 +117,8 @@ function displayFullSchedule() {
   const useSaltControl = document.getElementById("useSaltControl").checked;
   const useCarbDeplete = document.getElementById("useCarbDeplete").checked;
   const carbDepleteCalorieOption = document.getElementById("carbDepleteCalorieOption").value;
+  const calorieStrategy = document.getElementById("calorieStrategy").value;
   const output = document.getElementById("output");
-
-  let proteinRate = 0.30 + (bodyfat / 100) * 0.15;
-  let fatRate = 0.25 - (bodyfat / 100) * 0.05;
-  let carbRate = 1 - proteinRate - fatRate;
-  const carbAdjust = { low: -0.05, medium: 0.0, high: 0.05 }[carbSens];
-  carbRate = Math.min(Math.max(carbRate + carbAdjust, 0.3), 0.6);
-  proteinRate = Math.min(Math.max(proteinRate, 0.30), 0.50);
-  fatRate = 1 - proteinRate - carbRate;
 
   const defaultTdeeRatios = {
     3: [1.0, 1.0, 1.0],
@@ -163,26 +133,38 @@ function displayFullSchedule() {
   };
 
   const isDeplete = useCarbDeplete;
-  let ratios = (!isDeplete) ? defaultTdeeRatios[days]
-             : (carbDepleteCalorieOption === "adjust" ? depleteTdeeRatios[days] : defaultTdeeRatios[days]);
+  const ratios = (!isDeplete || carbDepleteCalorieOption === "adjust")
+    ? depleteTdeeRatios[days]
+    : defaultTdeeRatios[days];
 
   const adjust = (base, sens) => base * ({ low: 1.2, medium: 1.0, high: 0.8 }[sens]);
+
   output.innerHTML = "";
   const interval = Math.floor((14 * 60) / (meals - 1));
 
   ratios.forEach((rate, i) => {
-    const calories = Math.round(rate * tdee);
-    const baseProtein = Math.round(leanWeight * 2.2);
+    let calories = Math.round(rate * tdee);
+    if (!isDeplete || carbDepleteCalorieOption === "adjust") {
+      calories = Math.round(rate * tdee);
+    }
+
+    const baseProtein = Math.round(leanWeight * 2.3);
     const proteinKcal = baseProtein * 4;
-    const baseCarb = Math.round((calories * carbRate) / 4);
-    const carbKcal = baseCarb * 4;
+    const fatMin = 30;
+    const fatKcal = fatMin * 9;
+    const remainingKcal = calories - proteinKcal - fatKcal;
 
     let extraProtein = 0;
     let extraFat = 0;
 
-    if (carbDepleteCalorieOption.startsWith("maintain")) {
-      const remainingKcal = calories - proteinKcal - carbKcal;
-      switch (carbDepleteCalorieOption) {
+    if (calorieStrategy.startsWith("maintain")) {
+      switch (calorieStrategy) {
+        case "maintain_p":
+          extraProtein = Math.round(remainingKcal / 4);
+          break;
+        case "maintain_f":
+          extraFat = Math.round(remainingKcal / 9);
+          break;
         case "maintain_p_strong":
           extraProtein = Math.round((remainingKcal * 0.7) / 4);
           extraFat = Math.round((remainingKcal * 0.3) / 9);
@@ -191,22 +173,14 @@ function displayFullSchedule() {
           extraProtein = Math.round((remainingKcal * 0.3) / 4);
           extraFat = Math.round((remainingKcal * 0.7) / 9);
           break;
-        case "maintain_p_only":
-          extraProtein = Math.round(remainingKcal / 4);
-          extraFat = 0;
-          break;
-        case "maintain_f_only":
-          extraProtein = 0;
-          extraFat = Math.round(remainingKcal / 9);
-          break;
       }
     }
 
     const totalProtein = baseProtein + extraProtein;
-    const totalFat = extraFat;
+    const totalFat = fatMin + extraFat;
     const pMeal = Math.round(totalProtein / meals);
     const fMeal = Math.round(totalFat / meals);
-    const cMeal = Math.round(baseCarb / meals);
+    const cMeal = Math.round(((calories - (totalProtein * 4 + totalFat * 9)) / 4) / meals);
 
     const baseWater = useWaterCut ? Math.max(weight * 0.08 - i * 0.5, 2.0) : 4;
     const baseSalt = useSaltControl ? Math.max(weight * 0.2 - i * 2, 3) : 8;
@@ -234,6 +208,7 @@ function displayFullSchedule() {
   });
 }
 </script>
+
 </body>
 </html>
 
