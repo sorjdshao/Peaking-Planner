@@ -87,6 +87,43 @@
 </div>
 
 <script>
+// 保存対象のフォーム要素IDリスト
+const inputIds = [
+  "weight", "bodyfat", "tdee", "mealCount", "wakeTime", "days",
+  "waterSensitivity", "saltSensitivity", "carbSensitivity",
+  "useWaterCut", "useSaltControl", "useCarbDeplete"
+];
+
+// ページ読み込み時にlocalStorageから入力値を復元
+window.addEventListener("DOMContentLoaded", () => {
+  inputIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    const val = localStorage.getItem(id);
+    if (val !== null) {
+      if (el.type === "checkbox") {
+        el.checked = val === "true";
+      } else {
+        el.value = val;
+      }
+    }
+  });
+});
+
+// 入力値が変更された時、自動でlocalStorageに保存
+inputIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  el.addEventListener("change", () => {
+    const val = el.type === "checkbox" ? el.checked : el.value;
+    localStorage.setItem(id, val);
+  });
+});
+</script>
+
+<script>
 function displayFullSchedule() {
   const weightInput = document.getElementById("weight");
   const tdeeInput = document.getElementById("tdee");
