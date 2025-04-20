@@ -92,6 +92,8 @@ function displayFullSchedule() {
   const errorOutput = document.getElementById("inputError");
 
   const weight = parseFloat(weightInput.value);
+const bodyfat = parseFloat(document.getElementById("bodyfat").value);  // ← 追加
+const leanWeight = weight * (1 - bodyfat / 100); // ← 除脂肪体重を計算
   const tdee = parseFloat(tdeeInput.value);
   const meals = parseInt(mealInput.value);
   const wake = wakeInput.value;
@@ -174,16 +176,15 @@ function displayFullSchedule() {
     }
 
     if (p.day === days) {
-      const pumpCarb = Math.round(safeWeight * 0.5);
-      const caffeine = Math.min(Math.round(safeWeight * 3), 400);
-      const pumpTime = new Date(time.getTime() - 30 * 60000);
-      const stimTime = new Date(time.getTime() - 15 * 60000);
+  const pumpCarb = Math.round(leanWeight * 0.5); // ← 修正！
+  const caffeine = Math.min(Math.round(leanWeight * 3), 400); // ← 修正！
+  const pumpTime = new Date(time.getTime() - 30 * 60000);
+  const stimTime = new Date(time.getTime() - 15 * 60000);
 
-      rows += `<tr><td>${pumpTime.toTimeString().slice(0,5)}</td><td>パンプ30分前（炭水化物）</td><td>-</td><td>-</td><td>${pumpCarb}g</td></tr>`;
-      rows += `<tr><td>${stimTime.toTimeString().slice(0,5)}</td><td>パンプ15分前（カフェイン）</td><td>-</td><td>-</td><td>${caffeine}mg</td></tr>`;
-      rows += `<tr><td>${time.toTimeString().slice(0,5)}</td><td>パンプアップ</td><td>-</td><td>-</td><td>-</td></tr>`;
-    }
-
+  rows += `<tr><td>${pumpTime.toTimeString().slice(0,5)}</td><td>パンプ30分前（炭水化物）</td><td>-</td><td>-</td><td>${pumpCarb}g</td></tr>`;
+  rows += `<tr><td>${stimTime.toTimeString().slice(0,5)}</td><td>パンプ15分前（カフェイン）</td><td>-</td><td>-</td><td>${caffeine}mg</td></tr>`;
+  rows += `<tr><td>${time.toTimeString().slice(0,5)}</td><td>パンプアップ</td><td>-</td><td>-</td><td>-</td></tr>`;
+}
     output.innerHTML += `
       <div class="day-block">
         <h3>Day ${p.day}（${p.calories} kcal / 水分 ${water}L / 塩分 ${salt}g）</h3>
