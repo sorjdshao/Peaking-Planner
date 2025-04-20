@@ -88,23 +88,27 @@ function displayFullSchedule() {
   const tdeeInput = document.getElementById("tdee");
   const mealInput = document.getElementById("mealCount");
   const wakeInput = document.getElementById("wakeTime");
+  const bodyfatInput = document.getElementById("bodyfat");
   const errorOutput = document.getElementById("inputError");
 
   const weight = parseFloat(weightInput.value);
-  const bodyfat = parseFloat(document.getElementById("bodyfat").value);
+  const bodyfat = parseFloat(bodyfatInput.value);
   const leanWeight = weight * (1 - bodyfat / 100);
-
   const tdee = parseFloat(tdeeInput.value);
   const meals = parseInt(mealInput.value);
   const wake = wakeInput.value;
 
   let errorMessages = [];
-  const inputsToValidate = [weightInput, tdeeInput, mealInput, wakeInput];
+  const inputsToValidate = [weightInput, bodyfatInput, tdeeInput, mealInput, wakeInput];
   inputsToValidate.forEach(el => el.classList.remove("input-error"));
 
   if (isNaN(weight) || weight < 30 || weight > 200) {
     weightInput.classList.add("input-error");
     errorMessages.push("体重（30〜200kg）を入力してください。");
+  }
+  if (isNaN(bodyfat) || bodyfat < 3 || bodyfat > 50) {
+    bodyfatInput.classList.add("input-error");
+    errorMessages.push("体脂肪率（3〜50％）を入力してください。");
   }
   if (isNaN(tdee) || tdee < 1000 || tdee > 6000) {
     tdeeInput.classList.add("input-error");
