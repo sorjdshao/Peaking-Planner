@@ -44,14 +44,13 @@ h2 { color: #333; margin-top: 40px; }
 </div>
 <div id="multiDaySchedules"></div>
 </section>
-
 <div class="container">
 <h1>ピーキング戦略完全版</h1>
 <button onclick="window.print()">PDFとして保存 / 印刷</button>
 <label>体重（kg）</label>
 <input id="weight" placeholder="例：70" type="number"/>
 <label>TDEE（1日の消費カロリー）</label>
-<input id="tdee" placeholder="例：2500" type="number"/>
+<input id="tdee" oninput="updatePFCfromTDEE()" placeholder="例：2500" type="number"/>
 <label>体脂肪率（％）</label>
 <input id="bodyfat" placeholder="例：15" type="number"/>
 <label>ピーキング期間</label>
@@ -209,6 +208,15 @@ function renderPeakDays() {
     const label = phaseLabels[i] || "調整日";
     dayDiv.innerHTML = `<h3>Day ${i}（${label}）</h3><p>この日のスケジュールはここに表示されます（今後実装）</p>`;
     container.appendChild(dayDiv);
+  }
+}
+
+function updatePFCfromTDEE() {
+  const tdee = parseFloat(document.getElementById("tdee").value);
+  if (!isNaN(tdee)) {
+    document.getElementById("protein").value = Math.round(tdee * 0.3 / 4);
+    document.getElementById("fat").value = Math.round(tdee * 0.2 / 9);
+    document.getElementById("carb").value = Math.round(tdee * 0.5 / 4);
   }
 }
 </script></body>
