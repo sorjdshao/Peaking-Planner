@@ -26,8 +26,6 @@
 <div class="container">
   <h1>ピーキング戦略（前日まで）</h1>
 
-  <button onclick="window.print()">PDFとして保存 / 印刷</button>
-
   <label>体重（kg）</label>
   <input id="weight" type="number" placeholder="例：70" />
 
@@ -80,6 +78,15 @@
   <label><input type="checkbox" id="useSaltControl" checked> 塩分調整を行う</label>
   <label><input type="checkbox" id="useCarbDeplete" checked> カーボディプリートを行う</label>
 
+  <label>カーボディプリート時のカロリー戦略</label>
+  <select id="carbDepleteCalorieOption">
+    <option value="adjust" selected>カロリーも減らす</option>
+    <option value="maintain_p_strong">カロリー維持（P中心で補う）</option>
+    <option value="maintain_f_strong">カロリー維持（F中心で補う）</option>
+    <option value="maintain_p_only">カロリー維持（Pのみ）</option>
+    <option value="maintain_f_only">カロリー維持（Fのみ）</option>
+  </select>
+
   <button onclick="displayFullSchedule()">全日スケジュールを表示</button>
 
   <div id="inputError" style="color: red; margin-top: 10px;"></div>
@@ -91,7 +98,7 @@
 const inputIds = [
   "weight", "bodyfat", "tdee", "mealCount", "wakeTime", "days",
   "waterSensitivity", "saltSensitivity", "carbSensitivity",
-  "useWaterCut", "useSaltControl", "useCarbDeplete"
+  "useWaterCut", "useSaltControl", "useCarbDeplete", "carbDepleteCalorieOption"
 ];
 
 // ページ読み込み時にlocalStorageから入力値を復元
@@ -99,14 +106,9 @@ window.addEventListener("DOMContentLoaded", () => {
   inputIds.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-
     const val = localStorage.getItem(id);
     if (val !== null) {
-      if (el.type === "checkbox") {
-        el.checked = val === "true";
-      } else {
-        el.value = val;
-      }
+      el.type === "checkbox" ? el.checked = val === "true" : el.value = val;
     }
   });
 });
@@ -115,81 +117,38 @@ window.addEventListener("DOMContentLoaded", () => {
 inputIds.forEach(id => {
   const el = document.getElementById(id);
   if (!el) return;
-
   el.addEventListener("change", () => {
     const val = el.type === "checkbox" ? el.checked : el.value;
     localStorage.setItem(id, val);
   });
 });
-</script>
 
-<script>
+// スケジュール表示ロジック
 function displayFullSchedule() {
-  const weightInput = document.getElementById("weight");
-  const tdeeInput = document.getElementById("tdee");
-  const mealInput = document.getElementById("mealCount");
-  const wakeInput = document.getElementById("wakeTime");
-  const bodyfatInput = document.getElementById("bodyfat");
-  const errorOutput = document.getElementById("inputError");
-
-  const weight = parseFloat(weightInput.value);
-  const bodyfat = parseFloat(bodyfatInput.value);
+  const weight = parseFloat(document.getElementById("weight").value);
+  const bodyfat = parseFloat(document.getElementById("bodyfat").value);
   const leanWeight = weight * (1 - bodyfat / 100);
-  const tdee = parseFloat(tdeeInput.value);
-  const meals = parseInt(mealInput.value);
-  const wake = wakeInput.value;
-
-  let errorMessages = [];
-  const inputsToValidate = [weightInput, bodyfatInput, tdeeInput, mealInput, wakeInput];
-  inputsToValidate.forEach(el => el.classList.remove("input-error"));
-
-  if (isNaN(weight) || weight < 30 || weight > 200) {
-    weightInput.classList.add("input-error");
-    errorMessages.push("体重（30〜200kg）を入力してください。");
-  }
-  if (isNaN(bodyfat) || bodyfat < 3 || bodyfat > 50) {
-    bodyfatInput.classList.add("input-error");
-    errorMessages.push("体脂肪率（3〜50％）を入力してください。");
-  }
-  if (isNaN(tdee) || tdee < 1000 || tdee > 6000) {
-    tdeeInput.classList.add("input-error");
-    errorMessages.push("TDEE（1000〜6000）を入力してください。");
-  }
-  if (isNaN(meals) || meals < 3) {
-    mealInput.classList.add("input-error");
-    errorMessages.push("食事回数は3以上で入力してください。");
-  }
-  if (!wake) {
-    wakeInput.classList.add("input-error");
-    errorMessages.push("起床時間を入力してください。");
-  }
-
-  if (errorMessages.length > 0) {
-    errorOutput.innerHTML = errorMessages.join("<br>");
-    return;
-  } else {
-    errorOutput.innerHTML = "";
-  }
-
+  const tdee = parseFloat(document.getElementById("tdee").value);
+  const meals = parseInt(document.getElementById("mealCount").value);
+  const wake = document.getElementById("wakeTime").value;
+  const [wakeH, wakeM] = wake.split(":").map(Number);
+  const days = parseInt(document.getElementById("days").value);
+  const waterSens = document.getElementById("waterSensitivity").value;
+  const saltSens = document.getElementById("saltSensitivity").value;
+  const carbSens = document.getElementById("carbSensitivity").value;
   const useWaterCut = document.getElementById("useWaterCut").checked;
   const useSaltControl = document.getElementById("useSaltControl").checked;
   const useCarbDeplete = document.getElementById("useCarbDeplete").checked;
+  const carbDepleteCalorieOption = document.getElementById("carbDepleteCalorieOption").value;
+  const output = document.getElementById("output");
 
-  const carbSens = document.getElementById("carbSensitivity").value;
   let proteinRate = 0.30 + (bodyfat / 100) * 0.15;
   let fatRate = 0.25 - (bodyfat / 100) * 0.05;
   let carbRate = 1 - proteinRate - fatRate;
-
   const carbAdjust = { low: -0.05, medium: 0.0, high: 0.05 }[carbSens];
   carbRate = Math.min(Math.max(carbRate + carbAdjust, 0.3), 0.6);
   proteinRate = Math.min(Math.max(proteinRate, 0.30), 0.50);
   fatRate = 1 - proteinRate - carbRate;
-
-  const days = parseInt(document.getElementById("days").value);
-  const waterSens = document.getElementById("waterSensitivity").value;
-  const saltSens = document.getElementById("saltSensitivity").value;
-  const [wakeH, wakeM] = wake.split(":").map(Number);
-  const output = document.getElementById("output");
 
   const defaultTdeeRatios = {
     3: [1.0, 1.0, 1.0],
@@ -203,30 +162,54 @@ function displayFullSchedule() {
     7: [0.9, 0.8, 0.7, 0.6, 1.0, 1.1, 1.2]
   };
 
-  const ratios = useCarbDeplete ? depleteTdeeRatios[days] : defaultTdeeRatios[days];
+  const isDeplete = useCarbDeplete;
+  let ratios = (!isDeplete) ? defaultTdeeRatios[days]
+             : (carbDepleteCalorieOption === "adjust" ? depleteTdeeRatios[days] : defaultTdeeRatios[days]);
 
   const adjust = (base, sens) => base * ({ low: 1.2, medium: 1.0, high: 0.8 }[sens]);
-
   output.innerHTML = "";
-  const dayMinutes = 14 * 60;
-  const interval = Math.floor(dayMinutes / (meals - 1));
+  const interval = Math.floor((14 * 60) / (meals - 1));
 
   ratios.forEach((rate, i) => {
     const calories = Math.round(rate * tdee);
+    const baseProtein = Math.round(leanWeight * 2.2);
+    const proteinKcal = baseProtein * 4;
+    const baseCarb = Math.round((calories * carbRate) / 4);
+    const carbKcal = baseCarb * 4;
 
-    const protein = Math.round(leanWeight * 2.2);
-    const proteinKcal = protein * 4;
-    const remainingKcal = calories - proteinKcal;
-    const fat = Math.round((remainingKcal * fatRate) / 9);
-    const carb = Math.round((remainingKcal * carbRate) / 4);
+    let extraProtein = 0;
+    let extraFat = 0;
 
-    const pMeal = Math.round(protein / meals);
-    const fMeal = Math.round(fat / meals);
-    const cMeal = Math.round(carb / meals);
+    if (carbDepleteCalorieOption.startsWith("maintain")) {
+      const remainingKcal = calories - proteinKcal - carbKcal;
+      switch (carbDepleteCalorieOption) {
+        case "maintain_p_strong":
+          extraProtein = Math.round((remainingKcal * 0.7) / 4);
+          extraFat = Math.round((remainingKcal * 0.3) / 9);
+          break;
+        case "maintain_f_strong":
+          extraProtein = Math.round((remainingKcal * 0.3) / 4);
+          extraFat = Math.round((remainingKcal * 0.7) / 9);
+          break;
+        case "maintain_p_only":
+          extraProtein = Math.round(remainingKcal / 4);
+          extraFat = 0;
+          break;
+        case "maintain_f_only":
+          extraProtein = 0;
+          extraFat = Math.round(remainingKcal / 9);
+          break;
+      }
+    }
+
+    const totalProtein = baseProtein + extraProtein;
+    const totalFat = extraFat;
+    const pMeal = Math.round(totalProtein / meals);
+    const fMeal = Math.round(totalFat / meals);
+    const cMeal = Math.round(baseCarb / meals);
 
     const baseWater = useWaterCut ? Math.max(weight * 0.08 - i * 0.5, 2.0) : 4;
     const baseSalt = useSaltControl ? Math.max(weight * 0.2 - i * 2, 3) : 8;
-
     const water = adjust(baseWater, waterSens).toFixed(1);
     const salt = Math.round(adjust(baseSalt, saltSens));
 
@@ -253,3 +236,4 @@ function displayFullSchedule() {
 </script>
 </body>
 </html>
+
