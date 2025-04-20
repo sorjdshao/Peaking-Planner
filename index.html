@@ -94,23 +94,6 @@ function displayFullSchedule() {
   const bodyfat = parseFloat(document.getElementById("bodyfat").value);
   const leanWeight = weight * (1 - bodyfat / 100);
 
-  let baseProtein, baseFat, baseCarb;
-  if (bodyfat < 10) {
-    baseProtein = 0.30; baseFat = 0.25; baseCarb = 0.45;
-  } else if (bodyfat < 20) {
-    baseProtein = 0.35; baseFat = 0.20; baseCarb = 0.45;
-  } else if (bodyfat < 30) {
-    baseProtein = 0.40; baseFat = 0.20; baseCarb = 0.40;
-  } else {
-    baseProtein = 0.45; baseFat = 0.20; baseCarb = 0.35;
-  }
-
-  const carbSens = document.getElementById("carbSensitivity").value;
-  const carbAdjust = { low: -0.05, medium: 0.0, high: 0.05 }[carbSens];
-  const carbRate = Math.min(Math.max(baseCarb + carbAdjust, 0.3), 0.6);
-  const proteinRate = baseProtein;
-  const fatRate = 1 - proteinRate - carbRate;
-
   const tdee = parseFloat(tdeeInput.value);
   const meals = parseInt(mealInput.value);
   const wake = wakeInput.value;
@@ -142,6 +125,18 @@ function displayFullSchedule() {
   } else {
     errorOutput.innerHTML = "";
   }
+
+  // ▼ 体脂肪率ベースでPFC決定
+  const carbSens = document.getElementById("carbSensitivity").value;
+  let proteinRate = 0.30 + (bodyfat / 100) * 0.15;  // 上限0.45
+  let fatRate = 0.25 - (bodyfat / 100) * 0.05;      // 下限0.20
+  let carbRate = 1 - proteinRate - fatRate;
+
+  // 感受性調整
+  const carbAdjust = { low: -0.05, medium: 0.0, high: 0.05 }[carbSens];
+  carbRate = Math.min(Math.max(carbRate + carbAdjust, 0.3), 0.6);
+  proteinRate = Math.min(Math.max(proteinRate, 0.30), 0.50);
+  fatRate = 1 - proteinRate - carbRate;
 
   const days = parseInt(document.getElementById("days").value);
   const waterSens = document.getElementById("waterSensitivity").value;
@@ -198,5 +193,3 @@ function displayFullSchedule() {
   });
 }
 </script>
-</body>
-</html>
