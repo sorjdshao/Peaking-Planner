@@ -2,74 +2,19 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>16週PR更新トレーニングプランナー</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>16週PR更新トレーニングプランナー</title>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #f5f5f5;
-      padding: 10px;
-      font-size: 1rem;
-    }
-    .container {
-      background: white;
-      border-radius: 10px;
-      padding: 15px;
-      max-width: 1000px;
-      margin: auto;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    table {
-      width: 100%;
-      display: block;
-      overflow-x: auto;
-      font-size: 0.9rem;
-      margin-top: 10px;
-      border-collapse: collapse;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 6px;
-      text-align: center;
-    }
-    th {
-      background-color: #eee;
-    }
-    input[type="number"], select {
-      width: 100%;
-      padding: 10px;
-      font-size: 1rem;
-      box-sizing: border-box;
-      margin-bottom: 10px;
-    }
-    .btn {
-      margin-top: 10px;
-      padding: 15px;
-      font-size: 1rem;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      width: 100%;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    details {
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      padding: 5px;
-      background-color: #fafafa;
-    }
-    summary {
-      font-weight: bold;
-      cursor: pointer;
-      padding: 5px;
-    }
-    .unit-label {
-      display: inline-block;
-      margin-left: 4px;
-      color: #888;
-    }
+    body { font-family: sans-serif; background: #f5f5f5; padding: 10px; font-size: 1rem; }
+    .container { background: white; border-radius: 10px; padding: 15px; max-width: 1000px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    table { width: 100%; display: block; overflow-x: auto; font-size: 0.9rem; margin-top: 10px; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    th { background-color: #eee; }
+    input[type="number"], select { width: 100%; padding: 10px; font-size: 1rem; box-sizing: border-box; margin-bottom: 10px; }
+    .btn { margin-top: 10px; padding: 15px; font-size: 1rem; background: #4CAF50; color: white; border: none; width: 100%; cursor: pointer; border-radius: 5px; }
+    details { margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; padding: 5px; background-color: #fafafa; }
+    summary { font-weight: bold; cursor: pointer; padding: 5px; }
+    .unit-label { display: inline-block; margin-left: 4px; color: #888; }
   </style>
 </head>
 <body>
@@ -99,12 +44,36 @@
         <option value="5">5回</option>
       </select>
     </label>
-    <button class="btn" onclick="generateScheduleTables();">計算する</button>
+    <!-- 修正済みのボタン -->
+    <button class="btn" onclick="saveInputs(); generateScheduleTables();">計算する</button>
     <div id="weeksContainer"></div>
   </div>
 
   <script>
     const weeksContainer = document.getElementById("weeksContainer");
+    let completionData = JSON.parse(localStorage.getItem("completionData") || '{}');
+
+    function saveCompletionData() {
+      localStorage.setItem("completionData", JSON.stringify(completionData));
+    }
+
+    function saveInputs() {
+      localStorage.setItem("formValues", JSON.stringify({
+        currentPR: document.getElementById("currentPR").value,
+        finalPRRate: document.getElementById("finalPRRate").value,
+        daysPerWeek: document.getElementById("daysPerWeek").value,
+        topSetPerWeek: document.getElementById("topSetPerWeek").value
+      }));
+    }
+
+    function loadInputs() {
+      const data = JSON.parse(localStorage.getItem("formValues"));
+      if (!data) return;
+      document.getElementById("currentPR").value = data.currentPR;
+      document.getElementById("finalPRRate").value = data.finalPRRate;
+      document.getElementById("daysPerWeek").value = data.daysPerWeek;
+      document.getElementById("topSetPerWeek").value = data.topSetPerWeek;
+    }
 
     function getIntensityRange(week) {
       const base = 70;
@@ -133,12 +102,16 @@
       const topSetCount = parseInt(document.getElementById("topSetPerWeek").value);
       const dayVolume = { 3: [6, 7, 6], 4: [6, 6, 6, 5], 5: [5, 6, 5, 5, 5], 6: [5, 5, 5, 5, 5, 4], 7: [5, 5, 5, 5, 4, 4, 3] }[daysPerWeek];
 
-      for (let week = 1; week <= 18; week++) {
-        const progressedPR = getProgressedPR(currentPR, week, finalRate);
-        const intensities = getIntensityRange(week);
+      for (let week = 1; week <= 16; week++) {
+        const isDeload = [9, 13, 17].includes(week);
+        const isPRChallenge = [8, 12, 16].includes(week);
+        const progressedPR = getProgressedPR(currentPR, week, finalRate).toFixed(1);
+
         const details = document.createElement("details");
         const summary = document.createElement("summary");
-        summary.textContent = `Week ${week}`;
+        summary.textContent = `Week ${week}（PR目標: ${progressedPR}kg）` +
+          (isDeload ? "（Deload Week）" : "") +
+          (isPRChallenge ? " ★PRチャレンジ週★" : "");
         details.appendChild(summary);
 
         const topSetDays = Array.from({ length: daysPerWeek }, (_, i) => i);
@@ -149,42 +122,66 @@
           const caption = document.createElement("caption");
           caption.textContent = `Day ${day + 1}`;
           table.appendChild(caption);
-          table.innerHTML += `<tr><th>セット名</th><th>重量(kg)</th><th>Reps</th></tr>`;
+          table.innerHTML += `<tr><th>セット名</th><th>重量(kg)</th><th>Reps</th><th>完遂</th></tr>`;
 
-          if (selectedDays.includes(day)) {
+          let setIndexOffset = 0;
+
+          if (!isDeload && selectedDays.includes(day)) {
             const topInput = document.createElement("input");
             topInput.type = "number";
             topInput.placeholder = "トップセット重量";
 
-            const row1 = document.createElement("tr");
-            row1.innerHTML = `<td>① トップ-10kg</td><td><input type='number' readonly id='minus10kg-week${week}-day${day}'> <span class='unit-label'>kg</span></td><td>1</td>`;
-            const row2 = document.createElement("tr");
-            row2.innerHTML = `<td>② トップ-5kg</td><td><input type='number' readonly id='minus5kg-week${week}-day${day}'> <span class='unit-label'>kg</span></td><td>1</td>`;
-            const row3 = document.createElement("tr");
-            const idBase = `top-week${week}-day${day}`;
-            row3.innerHTML = `<td>③ トップセット</td><td></td><td>1</td>`;
-            row3.querySelector("td:nth-child(2)").appendChild(topInput);
-            row3.querySelector("td:nth-child(2)").innerHTML += " <span class='unit-label'>kg</span>";
+            const rows = [
+              { label: "① トップ-10kg", offset: -10 },
+              { label: "② トップ-5kg", offset: -5 },
+              { label: "③ トップセット", offset: 0, manual: true }
+            ];
 
-            topInput.addEventListener("input", () => {
-              const val = parseFloat(topInput.value);
-              if (!isNaN(val)) {
-                document.getElementById(`minus10kg-week${week}-day${day}`).value = (val - 10).toFixed(1);
-                document.getElementById(`minus5kg-week${week}-day${day}`).value = (val - 5).toFixed(1);
+            rows.forEach(({ label, offset, manual }) => {
+              const row = document.createElement("tr");
+              row.innerHTML = `<td>${label}</td>`;
+              const weightInput = manual ? topInput : document.createElement("input");
+              weightInput.type = "number";
+              if (!manual) weightInput.readOnly = true;
+              const td = document.createElement("td");
+              td.appendChild(weightInput);
+              td.innerHTML += " <span class='unit-label'>kg</span>";
+              row.appendChild(td);
+              row.innerHTML += `<td>1</td><td><input type='checkbox'></td>`;
+              table.appendChild(row);
+
+              if (!manual) {
+                topInput.addEventListener("input", () => {
+                  const val = parseFloat(topInput.value);
+                  if (!isNaN(val)) weightInput.value = (val + offset).toFixed(1);
+                });
               }
             });
 
-            table.appendChild(row1)
-            table.appendChild(row2)
-            table.appendChild(row3)
+            setIndexOffset = 3;
           }
 
+          const intensities = getIntensityRange(week);
           const repRanges = ["6〜8回", "8〜10回", "10〜12回", "12〜15回", "15〜20回"];
           const normalSetCount = dayVolume[day];
+
           for (let i = 0; i < normalSetCount; i++) {
-            const weight = (progressedPR * (parseFloat(intensities[i]) / 100)).toFixed(1);
+            const intensity = parseFloat(intensities[i]);
+            const adjustedIntensity = isDeload ? (intensity * 0.8).toFixed(1) : intensity.toFixed(1);
+            const repRange = isDeload
+              ? repRanges[Math.min(i + 1, repRanges.length - 1)]
+              : repRanges[i];
+
             const row = document.createElement("tr");
-            row.innerHTML = `<td>セット${i + 4}（${intensities[i]}%）</td><td><input type='number' value='${weight}' readonly> <span class='unit-label'>kg</span></td><td>${repRanges[i]}</td>`;
+            row.innerHTML = `<td>セット${i + 4}（${adjustedIntensity}%）</td>`;
+            const weightInput = document.createElement("input");
+            weightInput.type = "number";
+            weightInput.value = (progressedPR * (adjustedIntensity / 100)).toFixed(1);
+            const tdWeight = document.createElement("td");
+            tdWeight.appendChild(weightInput);
+            tdWeight.innerHTML += " <span class='unit-label'>kg</span>";
+            row.appendChild(tdWeight);
+            row.innerHTML += `<td>${repRange}</td><td><input type="checkbox"></td>`;
             table.appendChild(row);
           }
 
@@ -194,6 +191,11 @@
         weeksContainer.appendChild(details);
       }
     }
+
+    window.onload = () => {
+      loadInputs();
+      generateScheduleTables();
+    };
   </script>
 </body>
 </html>
