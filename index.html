@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -6,51 +5,112 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>16週PR更新トレーニングプランナー</title>
   <style>
-    body { font-family: sans-serif; background: #f5f5f5; padding: 10px; font-size: 1rem; }
-    .container { background: white; border-radius: 10px; padding: 15px; max-width: 1000px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    table { width: 100%; display: block; overflow-x: auto; font-size: 0.9rem; margin-top: 10px; border-collapse: collapse; }
-    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
-    th { background-color: #eee; }
-    input[type="number"], select { width: 100%; padding: 10px; font-size: 1rem; box-sizing: border-box; margin-bottom: 10px; }
-    .btn { margin-top: 10px; padding: 15px; font-size: 1rem; background: #4CAF50; color: white; border: none; width: 100%; cursor: pointer; border-radius: 5px; }
-    details { margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; padding: 5px; background-color: #fafafa; }
-    summary { font-weight: bold; cursor: pointer; padding: 5px; }
-    .unit-label { display: inline-block; margin-left: 4px; color: #888; }
+    body { font-family: sans-serif; background: #f2f2f2; margin: 0; padding: 20px; }
+    .container { max-width: 1000px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; }
+    h1 { text-align: center; }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, select { width: 100%; padding: 10px; margin-top: 5px; }
+    .week-section { margin-top: 20px; border: 1px solid #ccc; border-radius: 5px; }
+    summary { font-weight: bold; font-size: 1.1rem; padding: 10px; background: #eee; cursor: pointer; }
+    .week-content { padding: 10px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>16週PR更新トレーニングプランナー</h2>
-    <label>現在のPR（kg）：<input type="number" id="currentPR" value="100"></label>
-    <label>Week16の目標PR％：
-      <select id="finalPRRate">
-        <option value="1.03">103%</option>
-        <option value="1.05" selected>105%</option>
-        <option value="1.075">107.5%</option>
-      </select>
-    </label>
-    <label>週あたりのトレーニング日数：
-      <select id="daysPerWeek">
-        <option value="3">3日</option>
-        <option value="4">4日</option>
-        <option value="5" selected>5日</option>
-        <option value="6">6日</option>
-        <option value="7">7日</option>
-      </select>
-    </label>
-    <label>週のトップセット実施回数：
-      <select id="topSetPerWeek">
-        <option value="3">3回</option>
-        <option value="4" selected>4回</option>
-        <option value="5">5回</option>
-      </select>
-    </label>
-    <button class="btn" onclick="saveInputs(); generateScheduleTables(); recalculateAll();">計算する</button>
-    <div id="weeksContainer"></div>
+    <h1>16週PR更新トレーニングプランナー</h1>
+
+    <!-- 入力フォーム -->
+    <label for="currentPR">現在のPR（kg）</label>
+    <input type="number" id="currentPR" />
+
+    <label for="goalPR">Week16の目標PR（%）</label>
+    <select id="goalPR">
+      <option value="103">103%</option>
+      <option value="105">105%</option>
+      <option value="107.5">107.5%</option>
+    </select>
+
+    <label for="trainingDays">週あたりのトレーニング日数</label>
+    <select id="trainingDays">
+      <option value="3">週3日</option>
+      <option value="4">週4日</option>
+      <option value="5">週5日</option>
+      <option value="6">週6日</option>
+      <option value="7">週7日</option>
+    </select>
+
+    <label for="topSetDays">週あたりのトップセット実施回数</label>
+    <select id="topSetDays">
+      <option value="3">週3回</option>
+      <option value="4">週4回</option>
+      <option value="5">週5回</option>
+    </select>
+
+    <!-- Week表示エリア -->
+    <div id="weekContainer"></div>
   </div>
 
   <script>
-    // 全てのロジックは再構成されたHTMLにて自動的に定義されます（略）
+    const container = document.getElementById("weekContainer");
+    const currentPRInput = document.getElementById("currentPR");
+    const goalPRInput = document.getElementById("goalPR");
+
+    function generateProgressivePRs(currentPR, goalPercent) {
+      const weeks = [];
+      const week1to12 = 12;
+      const week13to16 = 4;
+
+      for (let i = 1; i <= week1to12; i++) {
+        const percent = 92 + ((100 - 92) / (week1to12 - 1)) * (i - 1);
+        const pr = Math.round((currentPR * (percent / 100)) * 10) / 10;
+        weeks.push({ week: i, percent: percent.toFixed(1), pr: pr, isDeload: i === 9 });
+      }
+
+      const goalRate = parseFloat(goalPercent);
+      for (let i = 1; i <= week13to16; i++) {
+        const percent = 100 + ((goalRate - 100) / (week13to16 - 1)) * (i - 1);
+        const pr = Math.round((currentPR * (percent / 100)) * 10) / 10;
+        const weekIndex = week1to12 + i;
+        weeks.push({ week: weekIndex, percent: percent.toFixed(1), pr: pr, isDeload: weekIndex === 13 });
+      }
+
+      const week17pr = Math.round((currentPR * (goalRate / 100) * 0.8) * 10) / 10;
+      weeks.push({ week: 17, percent: (goalRate * 0.8).toFixed(1), pr: week17pr, isDeload: true });
+
+      return weeks;
+    }
+
+    function renderWeeks() {
+      container.innerHTML = "";
+      const currentPR = parseFloat(currentPRInput.value);
+      const goalPR = goalPRInput.value;
+
+      if (!currentPR || !goalPR) return;
+
+      const data = generateProgressivePRs(currentPR, goalPR);
+
+      data.forEach(({ week, percent, pr, isDeload }) => {
+        const section = document.createElement("details");
+        section.classList.add("week-section");
+        if (isDeload) section.style.backgroundColor = "#ffffcc";
+
+        const summary = document.createElement("summary");
+        summary.textContent = `Week ${week}`;
+        section.appendChild(summary);
+
+        const content = document.createElement("div");
+        content.classList.add("week-content");
+        content.innerHTML = `
+          <p>進行PR：<strong>${pr} kg</strong>（${percent}%）</p>
+          ${isDeload ? `<p style="color:red;"><strong>※Deload Week</strong></p>` : ""}
+        `;
+        section.appendChild(content);
+        container.appendChild(section);
+      });
+    }
+
+    currentPRInput.addEventListener("input", renderWeeks);
+    goalPRInput.addEventListener("change", renderWeeks);
   </script>
 </body>
 </html>
