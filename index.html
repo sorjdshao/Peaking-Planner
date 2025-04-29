@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>前日までピーキングツール</title>
+  <title>ピーキング計算ツール</title>
   <style>
     body { font-family: sans-serif; background: #f5f5f5; padding: 20px; }
     .container { background: #fff; padding: 20px; border-radius: 8px; max-width: 600px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -19,16 +19,16 @@
 <body>
 
 <div class="container">
-  <h2>前日までピーキング計算ツール</h2>
+  <h2>ピーキング計算ツール</h2>
 
   <label for="weight">体重(kg)</label>
   <input type="number" id="weight" step="0.1">
 
   <label for="bodyfat">体脂肪率(%)</label>
-  <input type="number" id="bodyfat" step="0.1">
+  <input type="number" id="bodyfat" step="0.1" onchange="updateFatOption()">
 
   <label for="calories">摂取カロリー(kcal)</label>
-  <input type="number" id="calories">
+  <input type="number" id="calories" placeholder="TDEEを基準に設定">
 
   <label for="protein">たんぱく質量(g/kg)</label>
   <select id="protein">
@@ -54,6 +54,26 @@
     <option value="very-low">全く浮腫まない</option>
   </select>
 
+  <label for="days">ピーキング期間（日数）</label>
+  <select id="days">
+    <option value="10">10日</option>
+    <option value="7">7日</option>
+    <option value="5">5日</option>
+    <option value="3">3日</option>
+  </select>
+
+  <label for="phase">ピーキングフェーズ</label>
+  <select id="phase">
+    <option value="depletion">ディプリート（カーボ制限）</option>
+    <option value="carb-up">カーボアップ（炭水化物補充）</option>
+  </select>
+
+  <label for="water">水分量 (L) (感受性基準)</label>
+  <input type="number" id="water" step="0.1" placeholder="自動設定も可能">
+
+  <label for="salt">塩分量 (g) (感受性基準)</label>
+  <input type="number" id="salt" step="0.1" placeholder="自動設定も可能">
+
   <button onclick="calculate()">計算する</button>
 
   <table id="output" style="display:none;">
@@ -67,6 +87,7 @@
       <tr><td>たんぱく質 (g)</td><td id="protein-out"></td></tr>
       <tr><td>脂質 (g)</td><td id="fat-out"></td></tr>
       <tr><td>炭水化物 (g)</td><td id="carb-out"></td></tr>
+      <tr><td>摂取カロリー (kcal)</td><td id="calories-out"></td></tr>
       <tr><td>水分量 (L)</td><td id="water-out"></td></tr>
       <tr><td>塩分量 (g)</td><td id="salt-out"></td></tr>
     </tbody>
@@ -75,6 +96,22 @@
 </div>
 
 <script>
+function updateFatOption() {
+  const bodyfat = parseFloat(document.getElementById("bodyfat").value);
+  let fatValue = 0.7; // Default value
+
+  if (bodyfat <= 5) {
+    fatValue = 0.9; // 体脂肪率が5%以下の場合は脂質を0.9g/kgに設定
+  } else if (bodyfat >= 10 && bodyfat < 20) {
+    fatValue = 0.6; // 体脂肪率が6〜10%の場合は脂質を0.6g/kgに設定
+  } else if (bodyfat >= 20) {
+    fatValue = 0.3; // 体脂肪率が20%以上の場合は脂質を0.3g/kgに設定（極限まで少なく）
+  }
+
+  // 自動設定された脂質量を選択肢として反映
+  document.getElementById("fat").value = fatValue;
+}
+
 function calculate() {
   const weight = parseFloat(document.getElementById("weight").value);
   const bodyfat = parseFloat(document.getElementById("bodyfat").value);
@@ -82,72 +119,34 @@ function calculate() {
   const proteinMultiplier = parseFloat(document.getElementById("protein").value);
   const fatMultiplier = parseFloat(document.getElementById("fat").value);
   const sensitivity = document.getElementById("sensitivity").value;
+  const phase = document.getElementById("phase").value;
 
-  // 入力エラーチェック
-  if (isNaN(weight) || isNaN(bodyfat) || isNaN(calories)) {
-    ["weight", "bodyfat", "calories"].forEach(id => {
-      const element = document.getElementById(id);
-      if (isNaN(parseFloat(element.value))) {
-        element.classList.add("error");
-      } else {
-        element.classList.remove("error");
-      }
-    });
-    alert("すべての項目を正しく入力してください。");
-    return;
-  } else {
-    ["weight", "bodyfat", "calories"].forEach(id => {
-      document.getElementById(id).classList.remove("error");
-    });
+  // 基本的なTDEE（基礎代謝 + 活動レベル）を計算
+  const tdee = weight * 24; // 基本的な目安として1kgあたりの消費カロリーを24kcalに設定（例）
+  
+  let adjustedCalories = calories; // 最初はユーザーが入力したカロリー
+  if (phase === "depletion") {
+    adjustedCalories = tdee * 0.7;  // ディプリート期間中はカロリーを30%削減
+  } else if (phase === "carb-up") {
+    adjustedCalories = tdee * 1.2;  // カーボアップ期間中はカロリーを20%増加
   }
 
+  // 除脂肪体重（LBM）を計算
   const lbm = weight * (1 - bodyfat / 100);  // 除脂肪体重
   const protein = lbm * proteinMultiplier;  // たんぱく質g
   const fat = lbm * fatMultiplier;         // 脂質g
-  const pCal = protein * 4;
-  const fCal = fat * 9;
-  const cCal = calories - (pCal + fCal);
-  const carb = cCal / 4;                   // 炭水化物g
 
-  // 感受性による水・塩分設定
-  let water, salt;
-  switch (sensitivity) {
-    case "very-high":
-      water = weight * 0.035;
-      salt = 2.5;
-      break;
-    case "high":
-      water = weight * 0.04;
-      salt = 3.0;
-      break;
-    case "normal":
-      water = weight * 0.045;
-      salt = 4.0;
-      break;
-    case "low":
-      water = weight * 0.05;
-      salt = 5.0;
-      break;
-    case "very-low":
-      water = weight * 0.055;
-      salt = 5.5;
-      break;
-  }
+  // カロリー配分
+  const pCal = protein * 4;  // たんぱく質カロリー
+  const fCal = fat * 9;      // 脂質カロリー
+  const cCal = adjustedCalories - (pCal + fCal); // 残りのカロリーを炭水化物に割り振る
+  const carb = cCal / 4;     // 炭水化物量(g)
 
-  // 最低保証
-  if (water < 1.5) water = 1.5;
-  if (salt < 2) salt = 2;
-
-  // 小数点1桁に丸め
-  function round1(value) {
-    return Math.round(value * 10) / 10;
-  }
-
-  document.getElementById("protein-out").innerText = round1(protein) + " g";
-  document.getElementById("fat-out").innerText = round1(fat) + " g";
-  document.getElementById("carb-out").innerText = round1(carb) + " g";
-  document.getElementById("water-out").innerText = round1(water) + " L";
-  document.getElementById("salt-out").innerText = round1(salt) + " g";
+  // 結果を表示
+  document.getElementById("protein-out").innerText = Math.round(protein) + " g";
+  document.getElementById("fat-out").innerText = Math.round(fat) + " g";
+  document.getElementById("carb-out").innerText = Math.round(carb) + " g";
+  document.getElementById("calories-out").innerText = Math.round(adjustedCalories) + " kcal";
 
   document.getElementById("output").style.display = "table";
 }
