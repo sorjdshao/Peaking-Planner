@@ -38,6 +38,13 @@
       <option value="very-low">全く浮腫まない</option>
     </select>
   </label>
+  <label>水抜き・塩抜き
+    <select id="cuttingMode">
+      <option value="none" selected>しない</option>
+      <option value="mild">軽めに実施</option>
+      <option value="hard">強めに実施</option>
+    </select>
+  </label>
 
   <button onclick="calculate()">計算する</button>
 
@@ -56,6 +63,7 @@ function calculate() {
   const tdee = parseFloat(document.getElementById('tdee').value);
   const peakingDays = parseInt(document.getElementById('peakingDays').value);
   const sensitivity = document.getElementById('sensitivity').value;
+  const cutting = document.getElementById('cuttingMode').value;
 
   const lbm = weight * (1 - bf / 100);
   const resultsBody = document.getElementById("resultsBody");
@@ -98,8 +106,17 @@ function calculate() {
     const cPct = Math.round((cCal / totalCal) * 100);
 
     const [dw, ds, cw, cs] = waterSaltMap[sensitivity];
-    const water = phase === "ディプリート" ? dw : cw;
-    const salt = phase === "ディプリート" ? ds : cs;
+    let water = phase === "ディプリート" ? dw : cw;
+    let salt = phase === "ディプリート" ? ds : cs;
+
+    if (phase === "カーボアップ" && dayLeft === 1 && cutting !== "none") {
+      const factor = cutting === "mild" ? 0.7 : 0.5;
+      water *= factor;
+      salt *= factor;
+    }
+    water = Math.max(water, 1.2);
+    salt = Math.max(salt, 1.0);
+
     const note = phase === "ディプリート" ? "脂肪燃焼優先" : "パンプ重視";
 
     const row = `<tr><td>Day ${dayIndex}</td><td>${phase}</td><td>${Math.round(calories)} kcal</td><td>${Math.round(protein)} g</td><td>${Math.round(fat)} g</td><td>${Math.round(carbs)} g</td><td>P:${pPct}% F:${fPct}% C:${cPct}%</td><td>${water.toFixed(1)} L</td><td>${salt.toFixed(1)} g</td><td>${note}</td></tr>`;
