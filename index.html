@@ -20,13 +20,7 @@
 
   <label>体重（kg）<input type="number" id="weight"></label>
   <label>体脂肪率（%）<input type="number" id="bodyfat"></label>
-  <label>活動レベル
-    <select id="activity">
-      <option value="28">低（×28）</option>
-      <option value="30" selected>中（×30）</option>
-      <option value="33">高（×33）</option>
-    </select>
-  </label>
+  <label>TDEE（手動入力 kcal）<input type="number" id="tdee"></label>
   <label>ピーキング日数
     <select id="peakingDays">
       <option>10</option>
@@ -36,7 +30,7 @@
     </select>
   </label>
   <label>現在のフェーズ日数<input type="number" id="daysRemaining"></label>
-  <label>感受性
+  <label>水や塩分の感受性
     <select id="sensitivity">
       <option value="very-high">すごい浮腫む</option>
       <option value="high">浮腫む</option>
@@ -50,19 +44,9 @@
 
   <table id="results" style="display:none">
     <thead>
-      <tr><th>項目</th><th>値</th></tr>
+      <tr><th>日数</th><th>フェーズ</th><th>カロリー</th><th>たんぱく質</th><th>脂質</th><th>炭水化物</th><th>PFC比率</th><th>水分</th><th>塩分</th><th>備考</th></tr>
     </thead>
-    <tbody>
-      <tr><td>総摂取カロリー</td><td id="calories"></td></tr>
-      <tr><td>たんぱく質</td><td id="protein"></td></tr>
-      <tr><td>脂質</td><td id="fat"></td></tr>
-      <tr><td>炭水化物</td><td id="carbs"></td></tr>
-      <tr><td>PFC比率</td><td id="pfc"></td></tr>
-      <tr><td>水分量</td><td id="water"></td></tr>
-      <tr><td>塩分量</td><td id="salt"></td></tr>
-      <tr><td>フェーズ</td><td id="phase"></td></tr>
-      <tr><td>備考</td><td id="note"></td></tr>
-    </tbody>
+    <tbody id="resultsBody"></tbody>
   </table>
 </div>
 
@@ -70,36 +54,14 @@
 function calculate() {
   const weight = parseFloat(document.getElementById('weight').value);
   const bf = parseFloat(document.getElementById('bodyfat').value);
-  const activity = parseFloat(document.getElementById('activity').value);
+  const tdee = parseFloat(document.getElementById('tdee').value);
+  const peakingDays = parseInt(document.getElementById('peakingDays').value);
   const daysRemaining = parseInt(document.getElementById('daysRemaining').value);
   const sensitivity = document.getElementById('sensitivity').value;
 
   const lbm = weight * (1 - bf / 100);
-  const tdee = weight * activity;
-
-  let phase = daysRemaining <= 3 ? "カーボアップ" : "ディプリート";
-  let baseRatio = bf >= 10 ? 0.75 : (bf >= 5 ? 0.95 : 1.05);
-  let phaseRatio = phase === "ディプリート" ? 0.8 : 1.2;
-  const calories = tdee * baseRatio * phaseRatio;
-
-  const protein = lbm * 2.3;
-  let fatRate = 0.7;
-  if (phase === "ディプリート") {
-    if (bf < 5) fatRate = 0.6;
-    else if (bf > 10) fatRate = 0.9;
-  } else {
-    fatRate = 0.35;
-  }
-  const fat = lbm * fatRate;
-  let carbs = phase === "ディプリート" ? weight * 1.1 : weight * 6.0;
-
-  const pCal = protein * 4;
-  const fCal = fat * 9;
-  const cCal = carbs * 4;
-  const totalCal = pCal + fCal + cCal;
-  const pPct = Math.round((pCal / totalCal) * 100);
-  const fPct = Math.round((fCal / totalCal) * 100);
-  const cPct = Math.round((cCal / totalCal) * 100);
+  const resultsBody = document.getElementById("resultsBody");
+  resultsBody.innerHTML = "";
 
   const waterSaltMap = {
     "very-high": [1.5, 2.0, 2.0, 2.5],
@@ -108,22 +70,43 @@ function calculate() {
     "low": [3.0, 4.0, 4.0, 5.0],
     "very-low": [3.5, 4.5, 4.5, 5.5]
   };
-  const [dw, ds, cw, cs] = waterSaltMap[sensitivity];
-  const water = phase === "ディプリート" ? dw : cw;
-  const salt = phase === "ディプリート" ? ds : cs;
 
-  const note = phase === "ディプリート" ? "脂肪燃焼優先、水分補給を欠かさず。" : "パンプ重視、前日夜に炭水化物を補給。";
+  for (let i = 0; i < peakingDays; i++) {
+    const dayLeft = peakingDays - i;
+    const phase = dayLeft <= 3 ? "カーボアップ" : "ディプリート";
+    const baseRatio = bf >= 10 ? 0.75 : (bf >= 5 ? 0.95 : 1.05);
+    const phaseRatio = phase === "ディプリート" ? 0.8 : 1.2;
+    const calories = tdee * baseRatio * phaseRatio;
 
-  document.getElementById('calories').textContent = `${Math.round(calories)} kcal`;
-  document.getElementById('protein').textContent = `${Math.round(protein)} g`;
-  document.getElementById('fat').textContent = `${Math.round(fat)} g`;
-  document.getElementById('carbs').textContent = `${Math.round(carbs)} g`;
-  document.getElementById('pfc').textContent = `P:${pPct}% / F:${fPct}% / C:${cPct}%`;
-  document.getElementById('water').textContent = `${water.toFixed(1)} L`;
-  document.getElementById('salt').textContent = `${salt.toFixed(1)} g`;
-  document.getElementById('phase').textContent = phase;
-  document.getElementById('note').textContent = note;
-  document.getElementById('results').style.display = 'table';
+    const protein = lbm * 2.3;
+    let fatRate = 0.7;
+    if (phase === "ディプリート") {
+      if (bf < 5) fatRate = 0.6;
+      else if (bf > 10) fatRate = 0.9;
+    } else {
+      fatRate = 0.35;
+    }
+    const fat = lbm * fatRate;
+    const carbs = phase === "ディプリート" ? weight * 1.1 : weight * 6.0;
+
+    const pCal = protein * 4;
+    const fCal = fat * 9;
+    const cCal = carbs * 4;
+    const totalCal = pCal + fCal + cCal;
+    const pPct = Math.round((pCal / totalCal) * 100);
+    const fPct = Math.round((fCal / totalCal) * 100);
+    const cPct = Math.round((cCal / totalCal) * 100);
+
+    const [dw, ds, cw, cs] = waterSaltMap[sensitivity];
+    const water = phase === "ディプリート" ? dw : cw;
+    const salt = phase === "ディプリート" ? ds : cs;
+    const note = phase === "ディプリート" ? "脂肪燃焼優先" : "パンプ重視";
+
+    const row = `<tr><td>Day ${i + 1}</td><td>${phase}</td><td>${Math.round(calories)} kcal</td><td>${Math.round(protein)} g</td><td>${Math.round(fat)} g</td><td>${Math.round(carbs)} g</td><td>P:${pPct}% F:${fPct}% C:${cPct}%</td><td>${water.toFixed(1)} L</td><td>${salt.toFixed(1)} g</td><td>${note}</td></tr>`;
+    resultsBody.innerHTML += row;
+  }
+
+  document.getElementById("results").style.display = "table";
 }
 </script>
 </body>
