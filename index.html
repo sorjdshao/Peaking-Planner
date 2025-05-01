@@ -29,8 +29,7 @@
       <option>3</option>
     </select>
   </label>
-  <label>現在のフェーズ日数<input type="number" id="daysRemaining"></label>
-  <label>水や塩分の感受性
+  <label>感受性
     <select id="sensitivity">
       <option value="very-high">すごい浮腫む</option>
       <option value="high">浮腫む</option>
@@ -56,7 +55,6 @@ function calculate() {
   const bf = parseFloat(document.getElementById('bodyfat').value);
   const tdee = parseFloat(document.getElementById('tdee').value);
   const peakingDays = parseInt(document.getElementById('peakingDays').value);
-  const daysRemaining = parseInt(document.getElementById('daysRemaining').value);
   const sensitivity = document.getElementById('sensitivity').value;
 
   const lbm = weight * (1 - bf / 100);
@@ -72,10 +70,11 @@ function calculate() {
   };
 
   for (let i = 0; i < peakingDays; i++) {
+    const dayIndex = i + 1;
     const dayLeft = peakingDays - i;
     const phase = dayLeft <= 3 ? "カーボアップ" : "ディプリート";
     const baseRatio = bf >= 10 ? 0.75 : (bf >= 5 ? 0.95 : 1.05);
-    const phaseRatio = phase === "ディプリート" ? 0.8 : 1.2;
+    const phaseRatio = phase === "ディプリート" ? (1 - i * 0.02) : (1.2 - (3 - dayLeft) * 0.05);
     const calories = tdee * baseRatio * phaseRatio;
 
     const protein = lbm * 2.3;
@@ -87,7 +86,8 @@ function calculate() {
       fatRate = 0.35;
     }
     const fat = lbm * fatRate;
-    const carbs = phase === "ディプリート" ? weight * 1.1 : weight * 6.0;
+    const carbFactor = phase === "ディプリート" ? 1.1 - i * 0.1 : 6.0 - (3 - dayLeft) * 0.5;
+    const carbs = weight * Math.max(0.5, carbFactor);
 
     const pCal = protein * 4;
     const fCal = fat * 9;
@@ -102,7 +102,7 @@ function calculate() {
     const salt = phase === "ディプリート" ? ds : cs;
     const note = phase === "ディプリート" ? "脂肪燃焼優先" : "パンプ重視";
 
-    const row = `<tr><td>Day ${i + 1}</td><td>${phase}</td><td>${Math.round(calories)} kcal</td><td>${Math.round(protein)} g</td><td>${Math.round(fat)} g</td><td>${Math.round(carbs)} g</td><td>P:${pPct}% F:${fPct}% C:${cPct}%</td><td>${water.toFixed(1)} L</td><td>${salt.toFixed(1)} g</td><td>${note}</td></tr>`;
+    const row = `<tr><td>Day ${dayIndex}</td><td>${phase}</td><td>${Math.round(calories)} kcal</td><td>${Math.round(protein)} g</td><td>${Math.round(fat)} g</td><td>${Math.round(carbs)} g</td><td>P:${pPct}% F:${fPct}% C:${cPct}%</td><td>${water.toFixed(1)} L</td><td>${salt.toFixed(1)} g</td><td>${note}</td></tr>`;
     resultsBody.innerHTML += row;
   }
 
