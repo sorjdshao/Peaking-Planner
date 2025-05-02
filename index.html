@@ -1,15 +1,15 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>前日までピーキングツール</title>
   <style>
     body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
     .container { max-width: 700px; background: white; margin: auto; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 1rem; }
     select, input { width: 60%; padding: 6px; font-size: 1rem; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; overflow-x: auto; display: block; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; overflow-x: auto; display: none; }
     th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
     th { background: #eee; }
     button { background: #28a745; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 1.1rem; }
@@ -19,15 +19,12 @@
 <div class="container">
   <h2>前日までピーキング計算ツール</h2>
 
-  <label>体重（kg）<input type="number" id="weight"></label>
-  <label>体脂肪率（%）<input type="number" id="bodyfat"></label>
-  <label>TDEE（手動入力 kcal）<input type="number" id="tdee"></label>
+  <label>体重（kg）<input type="number" id="weight" /></label>
+  <label>体脂肪率（%）<input type="number" id="bodyfat" /></label>
+  <label>TDEE（手動入力 kcal）<input type="number" id="tdee" /></label>
   <label>ピーキング日数
     <select id="peakingDays">
-      <option>10</option>
-      <option>7</option>
-      <option>5</option>
-      <option>3</option>
+      <option>10</option><option>7</option><option>5</option><option>3</option>
     </select>
   </label>
   <label>感受性
@@ -49,7 +46,7 @@
 
   <button onclick="calculate()">計算する</button>
 
-  <table id="results" style="display:none">
+  <table id="results">
     <thead>
       <tr><th>日数</th><th>フェーズ</th><th>カロリー</th><th>たんぱく質</th><th>脂質</th><th>炭水化物</th><th>PFC比率</th><th>水分</th><th>塩分</th></tr>
     </thead>
@@ -59,12 +56,19 @@
 
 <script>
 function calculate() {
-  const weight = parseFloat(document.getElementById('weight').value);
-  const bf = parseFloat(document.getElementById('bodyfat').value);
-  const tdee = parseFloat(document.getElementById('tdee').value);
-  const peakingDays = parseInt(document.getElementById('peakingDays').value);
-  const sensitivity = document.getElementById('sensitivity').value;
-  const cutting = document.getElementById('cuttingMode').value;
+  alert("計算開始");
+
+  const weight = parseFloat(document.getElementById("weight").value);
+  const bf = parseFloat(document.getElementById("bodyfat").value);
+  const tdee = parseFloat(document.getElementById("tdee").value);
+  const peakingDays = parseInt(document.getElementById("peakingDays").value);
+  const sensitivity = document.getElementById("sensitivity").value;
+  const cutting = document.getElementById("cuttingMode").value;
+
+  if (isNaN(weight) || isNaN(bf) || isNaN(tdee)) {
+    alert("体重・体脂肪率・TDEEをすべて入力してください。");
+    return;
+  }
 
   const lbm = weight * (1 - bf / 100);
   const resultsBody = document.getElementById("resultsBody");
@@ -87,7 +91,6 @@ function calculate() {
       : tdee * (bf >= 10 ? 1.05 : (bf >= 5 ? 1.15 : 1.2));
 
     const protein = lbm * 2.3;
-
     let fatRate;
     if (phase === "ディプリート") {
       if (bf < 5) fatRate = 0.6;
@@ -97,13 +100,9 @@ function calculate() {
       fatRate = bf < 5 ? 0.4 : 0.3;
     }
     const fat = lbm * fatRate;
-
-    let carbs;
-    if (phase === "ディプリート") {
-      carbs = Math.max(weight * 0.5, weight * (1.1 - i * 0.1));
-    } else {
-      carbs = weight * (4.0 + 0.5 * (dayLeft - 1)); // 6→5→4g/kg
-    }
+    const carbs = phase === "ディプリート"
+      ? Math.max(weight * 0.5, weight * (1.1 - i * 0.1))
+      : weight * (4.0 + 0.5 * (dayLeft - 1));
 
     const pCal = protein * 4;
     const fCal = fat * 9;
@@ -128,6 +127,8 @@ function calculate() {
     const row = `<tr><td>Day ${dayIndex}</td><td>${phase}</td><td>${Math.round(calories)} kcal</td><td>${Math.round(protein)} g</td><td>${Math.round(fat)} g</td><td>${Math.round(carbs)} g</td><td>P:${pPct}% F:${fPct}% C:${cPct}%</td><td>${water.toFixed(1)} L</td><td>${salt.toFixed(1)} g</td></tr>`;
     resultsBody.innerHTML += row;
   }
+
+  document.getElementById("results").style.display = "table";
 }
 </script>
 </body>
