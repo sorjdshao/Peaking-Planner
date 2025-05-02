@@ -8,7 +8,7 @@
     body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
     .container { max-width: 700px; background: white; margin: auto; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 1rem; }
-select, input { width: 60%; padding: 6px; font-size: 1rem; }
+    select, input { width: 60%; padding: 6px; font-size: 1rem; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; overflow-x: auto; display: block; }
     th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
     th { background: #eee; }
@@ -59,7 +59,6 @@ select, input { width: 60%; padding: 6px; font-size: 1rem; }
 
 <script>
 function calculate() {
-  saveInputs();
   const weight = parseFloat(document.getElementById('weight').value);
   const bf = parseFloat(document.getElementById('bodyfat').value);
   const tdee = parseFloat(document.getElementById('tdee').value);
@@ -83,21 +82,28 @@ function calculate() {
     const dayIndex = i + 1;
     const dayLeft = peakingDays - i;
     const phase = dayLeft <= 3 ? "カーボアップ" : "ディプリート";
-    const baseRatio = bf >= 10 ? 0.75 : (bf >= 5 ? 0.95 : 1.05);
-    const phaseRatio = phase === "ディプリート" ? (1 - i * 0.02) : (1.2 - (3 - dayLeft) * 0.05);
-    const calories = tdee * baseRatio * phaseRatio;
+    const calories = phase === "ディプリート"
+      ? tdee * (bf >= 10 ? 0.75 : (bf >= 5 ? 0.85 : 0.9))
+      : tdee * (bf >= 10 ? 1.05 : (bf >= 5 ? 1.15 : 1.2));
 
     const protein = lbm * 2.3;
-    let fatRate = 0.7;
+
+    let fatRate;
     if (phase === "ディプリート") {
       if (bf < 5) fatRate = 0.6;
       else if (bf > 10) fatRate = 0.9;
+      else fatRate = 0.7;
     } else {
-      fatRate = 0.35;
+      fatRate = bf < 5 ? 0.4 : 0.3;
     }
     const fat = lbm * fatRate;
-    const carbFactor = phase === "ディプリート" ? 1.1 - i * 0.1 : 6.0 - (3 - dayLeft) * 0.5;
-    const carbs = weight * Math.max(0.5, carbFactor);
+
+    let carbs;
+    if (phase === "ディプリート") {
+      carbs = Math.max(weight * 0.5, weight * (1.1 - i * 0.1));
+    } else {
+      carbs = weight * (4.0 + 0.5 * (dayLeft - 1)); // 6→5→4g/kg
+    }
 
     const pCal = protein * 4;
     const fCal = fat * 9;
@@ -111,46 +117,18 @@ function calculate() {
     let water = phase === "ディプリート" ? dw : cw;
     let salt = phase === "ディプリート" ? ds : cs;
 
-    if (phase === "カーボアップ" && dayLeft === 1 && cutting !== "none") {
-      const factor = cutting === "mild" ? 0.7 : 0.5;
+    if (phase === "カーボアップ" && (dayLeft === 2 || dayLeft === 1) && cutting !== "none") {
+      const factor = cutting === "mild" ? (dayLeft === 2 ? 0.85 : 0.7) : (dayLeft === 2 ? 0.7 : 0.5);
       water *= factor;
       salt *= factor;
     }
     water = Math.max(water, 1.2);
     salt = Math.max(salt, 1.0);
 
-    
-
     const row = `<tr><td>Day ${dayIndex}</td><td>${phase}</td><td>${Math.round(calories)} kcal</td><td>${Math.round(protein)} g</td><td>${Math.round(fat)} g</td><td>${Math.round(carbs)} g</td><td>P:${pPct}% F:${fPct}% C:${cPct}%</td><td>${water.toFixed(1)} L</td><td>${salt.toFixed(1)} g</td></tr>`;
     resultsBody.innerHTML += row;
   }
-
-  document.getElementById("results").style.display = "table";
 }
-// 入力値を保存
-function saveInputs() {
-  const inputs = {
-    weight: document.getElementById("weight").value,
-    bodyfat: document.getElementById("bodyfat").value,
-    tdee: document.getElementById("tdee").value,
-    peakingDays: document.getElementById("peakingDays").value,
-    sensitivity: document.getElementById("sensitivity").value,
-    cuttingMode: document.getElementById("cuttingMode").value
-  };
-  localStorage.setItem("peakingInputs", JSON.stringify(inputs));
-}
-
-// ページ読み込み時に復元
-window.onload = function () {
-  const saved = JSON.parse(localStorage.getItem("peakingInputs"));
-  if (!saved) return;
-  document.getElementById("weight").value = saved.weight || "";
-  document.getElementById("bodyfat").value = saved.bodyfat || "";
-  document.getElementById("tdee").value = saved.tdee || "";
-  document.getElementById("peakingDays").value = saved.peakingDays || "7";
-  document.getElementById("sensitivity").value = saved.sensitivity || "normal";
-  document.getElementById("cuttingMode").value = saved.cuttingMode || "none";
-};
 </script>
 </body>
 </html>
