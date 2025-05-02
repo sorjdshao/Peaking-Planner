@@ -7,8 +7,9 @@
   <style>
     body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
     .container { max-width: 700px; background: white; margin: auto; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    label, select, input { display: block; width: 100%; margin-bottom: 10px; font-size: 1rem; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 1rem; }
+select, input { width: 60%; padding: 6px; font-size: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; overflow-x: auto; display: block; }
     th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
     th { background: #eee; }
     button { background: #28a745; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; width: 100%; font-size: 1.1rem; }
@@ -50,7 +51,7 @@
 
   <table id="results" style="display:none">
     <thead>
-      <tr><th>日数</th><th>フェーズ</th><th>カロリー</th><th>たんぱく質</th><th>脂質</th><th>炭水化物</th><th>PFC比率</th><th>水分</th><th>塩分</th><th>備考</th></tr>
+      <tr><th>日数</th><th>フェーズ</th><th>カロリー</th><th>たんぱく質</th><th>脂質</th><th>炭水化物</th><th>PFC比率</th><th>水分</th><th>塩分</th></tr>
     </thead>
     <tbody id="resultsBody"></tbody>
   </table>
@@ -58,6 +59,7 @@
 
 <script>
 function calculate() {
+  saveInputs();
   const weight = parseFloat(document.getElementById('weight').value);
   const bf = parseFloat(document.getElementById('bodyfat').value);
   const tdee = parseFloat(document.getElementById('tdee').value);
@@ -117,14 +119,38 @@ function calculate() {
     water = Math.max(water, 1.2);
     salt = Math.max(salt, 1.0);
 
-    const note = phase === "ディプリート" ? "脂肪燃焼優先" : "パンプ重視";
+    
 
-    const row = `<tr><td>Day ${dayIndex}</td><td>${phase}</td><td>${Math.round(calories)} kcal</td><td>${Math.round(protein)} g</td><td>${Math.round(fat)} g</td><td>${Math.round(carbs)} g</td><td>P:${pPct}% F:${fPct}% C:${cPct}%</td><td>${water.toFixed(1)} L</td><td>${salt.toFixed(1)} g</td><td>${note}</td></tr>`;
+    const row = `<tr><td>Day ${dayIndex}</td><td>${phase}</td><td>${Math.round(calories)} kcal</td><td>${Math.round(protein)} g</td><td>${Math.round(fat)} g</td><td>${Math.round(carbs)} g</td><td>P:${pPct}% F:${fPct}% C:${cPct}%</td><td>${water.toFixed(1)} L</td><td>${salt.toFixed(1)} g</td></tr>`;
     resultsBody.innerHTML += row;
   }
 
   document.getElementById("results").style.display = "table";
 }
+// 入力値を保存
+function saveInputs() {
+  const inputs = {
+    weight: document.getElementById("weight").value,
+    bodyfat: document.getElementById("bodyfat").value,
+    tdee: document.getElementById("tdee").value,
+    peakingDays: document.getElementById("peakingDays").value,
+    sensitivity: document.getElementById("sensitivity").value,
+    cuttingMode: document.getElementById("cuttingMode").value
+  };
+  localStorage.setItem("peakingInputs", JSON.stringify(inputs));
+}
+
+// ページ読み込み時に復元
+window.onload = function () {
+  const saved = JSON.parse(localStorage.getItem("peakingInputs"));
+  if (!saved) return;
+  document.getElementById("weight").value = saved.weight || "";
+  document.getElementById("bodyfat").value = saved.bodyfat || "";
+  document.getElementById("tdee").value = saved.tdee || "";
+  document.getElementById("peakingDays").value = saved.peakingDays || "7";
+  document.getElementById("sensitivity").value = saved.sensitivity || "normal";
+  document.getElementById("cuttingMode").value = saved.cuttingMode || "none";
+};
 </script>
 </body>
 </html>
